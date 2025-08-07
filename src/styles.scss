@@ -1,0 +1,93 @@
+// src/styles.scss - ACTUALIZADO CON NUEVA SINTAXIS
+@use 'styles/variables' as *;
+@use 'styles/mixins' as *;
+@use 'styles/apple-design';
+@use 'styles/animations';
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+html {
+    height: 100%;
+    font-size: 16px;
+}
+
+body {
+    height: 100%;
+    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif;
+    background: var(--system-background);
+    color: var(--label-primary);
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+/* Estilos del branding de la app */
+.app-branding {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+
+.app-icon {
+    width: 20px;
+    height: 20px;
+    border-radius: 4px;
+    background: linear-gradient(135deg, #007AFF, #5856D6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    box-shadow: 0 1px 3px rgba(0, 122, 255, 0.3);
+
+    svg {
+        width: 12px;
+        height: 12px;
+    }
+}
+
+.app-title {
+    font-size: 13px;
+    font-weight: 700;
+    background: linear-gradient(135deg, #007AFF, #5856D6);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    letter-spacing: -0.01em;
+}
+
+.powered-by {
+    font-size: 11px;
+    color: #8e8e93 !important;
+    font-weight: 500;
+    margin: 0;
+}
+
+/* Estilos globales para componentes */
+.glass-effect {
+    @include glass-effect;
+}
+
+.apple-scrollbar {
+    @include scrollbar;
+}
+
+/* Dark mode para el branding */
+@media (prefers-color-scheme: dark) {
+    .app-title {
+        background: linear-gradient(135deg, #5AC8FA, #AF52DE);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+    }
+
+    .app-icon {
+        background: linear-gradient(135deg, #5AC8FA, #AF52DE);
+        box-shadow: 0 1px 3px rgba(90, 200, 250, 0.3);
+    }
+}
