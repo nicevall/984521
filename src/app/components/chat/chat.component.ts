@@ -4,10 +4,10 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Subject, takeUntil } from 'rxjs';
 
-import { GeminiService, GeminiResponse } from '../../services/gemini.service';
+import { BackendChatService, ChatResponse } from '../../services/backend-chat.service';
 import { ChatStorageService } from '../../services/chat-storage.service';
 import { FileService } from '../../services/file.service';
-import { GeminiInfoService } from '../../services/gemini-info.service';
+import { BackendChatResponse, CarreraOption } from '../../models/backend-response.model';
 import { Message } from '../../models/message.model';
 import { ChatState } from '../../models/chat-state.model';
 import { FileAttachment } from '../../models/file-upload.model';
@@ -17,7 +17,7 @@ import { MessageComponent } from '../message/message.component';
 import { TypingIndicatorComponent } from '../typing-indicator/typing-indicator.component';
 import { FileUploadComponent } from '../file-upload/file-upload.component';
 import { SystemInfoComponent } from '../system-info/system-info.component';
-import { ModelSelectorComponent } from '../model-selector/model-selector.component';
+import { CareerSelectorComponent } from '../career-selector/career-selector.component';
 
 // Directives
 import { AutoResizeDirective } from '../../directives/auto-resize.directive';
@@ -33,7 +33,7 @@ import { ClickOutsideDirective } from '../../directives/click-outside.directive'
     TypingIndicatorComponent,
     FileUploadComponent,
     SystemInfoComponent,
-    ModelSelectorComponent,
+    CareerSelectorComponent,
     AutoResizeDirective,
     ClickOutsideDirective
   ],
@@ -57,23 +57,24 @@ import { ClickOutsideDirective } from '../../directives/click-outside.directive'
             <h1 class="text-title-3">{{ getConversationTitle() }}</h1>
             <p class="text-caption-1" *ngIf="chatState.isTyping">AI está escribiendo...</p>
             
-            <div class="current-model-indicator" (click)="toggleModelSelector()">
+            <div class="current-model-indicator" (click)="toggleCareerSelector()">
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <circle cx="12" cy="12" r="3"/>
-                <path d="M12 1v6M12 17v6M4.22 4.22l4.24 4.24M15.54 15.54l4.24 4.24M1 12h6M17 12h6M4.22 19.78l4.24-4.24M15.54 8.46l4.24-4.24"/>
+                <path d="M22 10v6M2 10l10-5 10 5-10 5z"/>
+                <path d="M6 12v5c3 3 9 3 12 0v-5"/>
               </svg>
-              <span>{{ getCurrentModelName() }}</span>
-              <span class="model-params">{{ getCurrentModelParams() }}</span>
+              <span>{{ getCurrentCareerName() }}</span>
+              <span class="model-params">{{ getCurrentCareerCode() }}</span>
             </div>
           </div>
 
           <div class="header-actions">
             <button 
-              class="apple-button icon-only secondary model-selector-btn"
-              (click)="toggleModelSelector()"
-              title="Cambiar modelo AI">
+              class="apple-button icon-only secondary career-selector-btn"
+              (click)="toggleCareerSelector()"
+              title="Cambiar carrera">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M12 2L13.09 8.26L22 9L13.09 9.74L12 16L10.91 9.74L2 9L10.91 8.26L12 2Z"/>
+                <path d="M22 10v6M2 10l10-5 10 5-10 5z"/>
+                <path d="M6 12v5c3 3 9 3 12 0v-5"/>
               </svg>
             </button>
 
@@ -123,9 +124,9 @@ import { ClickOutsideDirective } from '../../directives/click-outside.directive'
                   <path d="M12 1v6M12 17v6M4.22 4.22l4.24 4.24M15.54 15.54l4.24 4.24M1 12h6M17 12h6M4.22 19.78l4.24-4.24M15.54 8.46l4.24-4.24"/>
                 </svg>
               </div>
-              <h2 class="text-title-2">¡Hola! Soy tu asistente AI</h2>
+              <h2 class="text-title-2">¡Hola! Soy tu asistente bibliotecario AI</h2>
               <p class="text-body">
-                Puedo ayudarte con preguntas, análisis de imágenes, escritura de código y mucho más. 
+                Puedo ayudarte a encontrar libros, responder preguntas académicas y brindarte información específica de UIDE. 
                 ¿En qué puedo ayudarte hoy?
               </p>
               
@@ -134,28 +135,28 @@ import { ClickOutsideDirective } from '../../directives/click-outside.directive'
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M12 2L13.09 8.26L22 9L13.09 9.74L12 16L10.91 9.74L2 9L10.91 8.26L12 2Z"/>
                   </svg>
-                  Modelo actual: {{ getCurrentModelName() }} ({{ getCurrentModelParams() }})
+                  Carrera actual: {{ getCurrentCareerName() }} ({{ getCurrentCareerCode() }})
                 </div>
-                <button class="change-model-btn apple-button primary small" (click)="toggleModelSelector()">
-                  Cambiar modelo
+                <button class="change-model-btn apple-button primary small" (click)="toggleCareerSelector()">
+                  Cambiar carrera
                 </button>
               </div>
               
               <div class="quick-actions">
                 <button 
                   class="quick-action apple-button secondary"
-                  (click)="sendQuickMessage('Explícame qué es Angular 18')">
-                  Explícame Angular 18
+                  (click)="sendQuickMessage('Necesito libros sobre programación')">
+                  Libros de programación
                 </button>
                 <button 
                   class="quick-action apple-button secondary"
-                  (click)="sendQuickMessage('¿Cómo funciona TypeScript?')">
-                  ¿Cómo funciona TypeScript?
+                  (click)="sendQuickMessage('¿Qué libros recomiendan para Marketing Digital?')">
+                  Marketing Digital
                 </button>
                 <button 
                   class="quick-action apple-button secondary"
-                  (click)="sendQuickMessage('Ayúdame a crear una aplicación web')">
-                  Crear una app web
+                  (click)="sendQuickMessage('Información sobre la biblioteca de UIDE Campus Loja')">
+                  Info biblioteca UIDE
                 </button>
               </div>
             </div>
@@ -167,8 +168,8 @@ import { ClickOutsideDirective } from '../../directives/click-outside.directive'
               *ngFor="let message of getCurrentMessages(); trackBy: trackByMessageId"
               [message]="message"
               [useTypewriter]="useTypewriter"
-              [typewriterSpeed]="25"
-              [typewriterDelay]="200"
+              [typewriterSpeed]="35"
+              [typewriterDelay]="300"
               (copyMessage)="showNotification($event)"
               (regenerateMessageEvent)="regenerateResponse($event)">
             </app-message>
@@ -282,7 +283,7 @@ import { ClickOutsideDirective } from '../../directives/click-outside.directive'
       </div>
 
       <app-system-info *ngIf="showSystemInfo"></app-system-info>
-      <app-model-selector *ngIf="showModelSelector"></app-model-selector>
+      <app-career-selector *ngIf="showCareerSelector"></app-career-selector>
     </div>
   `,
   styles: [`
@@ -291,9 +292,9 @@ import { ClickOutsideDirective } from '../../directives/click-outside.directive'
       display: flex;
       flex-direction: column;
       height: 100vh;
-      margin-left: 280px;
+      margin-left: var(--sidebar-width, 280px);
       background: linear-gradient(180deg, #f5f5f7 0%, #fafafa 100%);
-      transition: margin-left 0.3s ease;
+      transition: margin-left 0.3s cubic-bezier(0.4, 0.0, 0.2, 1);
     }
 
     @media (max-width: 768px) {
@@ -365,7 +366,7 @@ import { ClickOutsideDirective } from '../../directives/click-outside.directive'
       gap: 8px;
     }
 
-    .model-selector-btn {
+    .career-selector-btn {
       background: linear-gradient(135deg, #007AFF, #5856D6) !important;
       color: white !important;
     }
@@ -681,8 +682,8 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
   selectedFiles: FileAttachment[] = [];
   showFileUpload = false;
   showSystemInfo = false;
-  showModelSelector = false;
-  useTypewriter = true;
+  showCareerSelector = false;
+  useTypewriter = false;
   isGenerating = false;
 
   chatState: ChatState = {
@@ -701,11 +702,13 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
   private shouldScrollToBottom = false;
 
   constructor(
-    private geminiService: GeminiService,
+    private backendChatService: BackendChatService,
     private chatStorage: ChatStorageService,
-    private fileService: FileService,
-    private geminiInfoService: GeminiInfoService
-  ) { }
+    private fileService: FileService
+  ) {
+    // Conectar el BackendChatService al ChatStorageService para generación de títulos
+    this.chatStorage.setBackendChatService(this.backendChatService);
+  }
 
   ngOnInit() {
     this.chatStorage.chatState$
@@ -716,22 +719,21 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
       });
 
     // Suscribirse al estado de generación
-    this.geminiService.isGenerating
+    this.backendChatService.isGenerating
       .pipe(takeUntil(this.destroy$))
       .subscribe(generating => {
         this.isGenerating = generating;
       });
 
-    if (!this.geminiService.isConfigured()) {
-      this.showError('API key de Gemini no configurada. Por favor, configura tu API key en el archivo environment.development.ts');
-    }
+    // Test backend connection on startup
+    this.testBackendConnection();
 
     document.body.addEventListener('closeSystemInfo', () => {
       this.showSystemInfo = false;
     });
 
-    document.body.addEventListener('closeModelSelector', () => {
-      this.showModelSelector = false;
+    document.body.addEventListener('closeCareerSelector', () => {
+      this.showCareerSelector = false;
     });
   }
 
@@ -753,21 +755,31 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
     this.chatStorage.toggleSidebar();
   }
 
-  toggleModelSelector() {
-    this.showModelSelector = !this.showModelSelector;
+  toggleCareerSelector() {
+    this.showCareerSelector = !this.showCareerSelector;
   }
 
-  getCurrentModelName(): string {
-    return this.geminiService.getCurrentModel().name;
+  getCurrentCareerName(): string {
+    const carreraMap: { [key: string]: string } = {
+      'ADMINISTRACION': 'Administración de Empresas',
+      'MARKETING': 'Marketing',
+      'NEGOCIOS_INTERNACIONALES': 'Negocios Internacionales',
+      'SISTEMAS': 'Ingeniería en Tecnologías de la Información y Comunicación',
+      'PSICOLOGIA': 'Psicología',
+      'ARQUITECTURA': 'Arquitectura',
+      'DERECHO': 'Derecho'
+    };
+    const carrera = this.backendChatService.getCurrentCarrera();
+    return carreraMap[carrera] || carrera;
   }
 
-  getCurrentModelParams(): string {
-    return this.geminiService.getCurrentModel().parameters;
+  getCurrentCareerCode(): string {
+    return this.backendChatService.getCurrentCarrera();
   }
 
   // MÉTODO PARA DETENER GENERACIÓN
   stopGeneration() {
-    this.geminiService.stopGeneration();
+    this.backendChatService.stopGeneration();
     this.chatStorage.setTyping(false);
     this.showNotification('Generación detenida');
   }
@@ -792,28 +804,43 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
     try {
       this.chatStorage.setTyping(true);
 
-      let response: GeminiResponse;
-
+      // For now, we'll ignore image attachments and focus on text
+      // TODO: Implement image handling with backend
       if (attachments.length > 0 && attachments.some(file => this.isImage(file.type))) {
-        const imageFile = this.createFileFromAttachment(attachments.find(file => this.isImage(file.type))!);
-        response = await this.geminiService.generateResponseWithImage(messageContent, imageFile).toPromise() || { text: '', success: false };
-      } else {
-        response = await this.geminiService.sendMessage(messageContent, false).toPromise() || { text: '', success: false };
+        this.showError('El procesamiento de imágenes estará disponible próximamente a través del backend.');
+        this.chatStorage.setTyping(false);
+        return;
       }
 
-      if (response.success) {
+      // Use standard chat (RAG service not available - missing chromadb dependency)
+      const backendResponse = await this.backendChatService.sendMessage(messageContent, true).toPromise();
+      
+      console.log('Backend response received:', backendResponse);
+      
+      if (backendResponse && backendResponse.success) {
+        console.log('Adding message to chat:', backendResponse.message);
         this.chatStorage.addMessage({
-          content: response.text,
+          content: backendResponse.message,
           isUser: false
         });
+        
+        // Show suggestions if available
+        if (backendResponse.suggestions && backendResponse.suggestions.length > 0) {
+          console.log('Suggestions from backend:', backendResponse.suggestions);
+        }
+        
+        // Show books found if available
+        if (backendResponse.books_found && backendResponse.books_found.length > 0) {
+          console.log('Books found:', backendResponse.books_found);
+        }
       } else {
-        this.showError(response.error || 'Error al generar respuesta');
+        this.showError('Error al generar respuesta desde el backend');
         this.chatStorage.updateLastMessage({ hasError: true });
       }
 
-    } catch (error) {
-      console.error('Error sending message:', error);
-      this.showError('Error de conexión. Por favor, inténtalo de nuevo.');
+    } catch (error: any) {
+      console.error('Error sending message to backend:', error);
+      this.showError(error.message || 'Error de conexión con el backend. Asegúrate de que el servidor esté ejecutándose.');
       this.chatStorage.updateLastMessage({ hasError: true });
     } finally {
       this.chatStorage.setTyping(false);
@@ -883,7 +910,8 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
 
   startNewConversation() {
     this.chatStorage.clearCurrentConversation();
-    this.geminiService.clearChat();
+    // Clear backend session to start fresh
+    this.backendChatService.clearSession();
     this.clearInput();
   }
 
@@ -926,7 +954,9 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
   }
 
   getCurrentMessages(): Message[] {
-    return this.chatState.currentConversation?.messages || [];
+    const messages = this.chatState.currentConversation?.messages || [];
+    console.log('getCurrentMessages called, returning:', messages);
+    return messages;
   }
 
   getConversationTitle(): string {
@@ -963,5 +993,17 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
     } catch (error) {
       console.error('Error scrolling to bottom:', error);
     }
+  }
+
+  private testBackendConnection() {
+    this.backendChatService.testConnection().subscribe({
+      next: (response) => {
+        console.log('Backend connection successful:', response);
+      },
+      error: (error) => {
+        console.error('Backend connection failed:', error);
+        this.showError('No se puede conectar al backend. Asegúrate de que el servidor esté ejecutándose en http://localhost:8000');
+      }
+    });
   }
 }

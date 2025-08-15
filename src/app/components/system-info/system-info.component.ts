@@ -1,7 +1,8 @@
 // src/app/components/system-info/system-info.component.ts
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { GeminiInfoService, GeminiInfo } from '../../services/gemini-info.service';
+import { BackendChatService } from '../../services/backend-chat.service';
+import { BackendHealthStatus } from '../../models/backend-response.model';
 
 @Component({
     selector: 'app-system-info',
@@ -11,7 +12,7 @@ import { GeminiInfoService, GeminiInfo } from '../../services/gemini-info.servic
     <div class="system-info-overlay" (click)="closeModal()">
       <div class="system-info-modal" (click)="$event.stopPropagation()">
         <div class="modal-header">
-          <h2 class="text-title-2">Información del Sistema</h2>
+          <h2 class="text-title-2">Sistema Bibliotecario - Estado</h2>
           <button class="close-button" (click)="closeModal()">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <line x1="18" y1="6" x2="6" y2="18"/>
@@ -20,48 +21,66 @@ import { GeminiInfoService, GeminiInfo } from '../../services/gemini-info.servic
           </button>
         </div>
 
-        <div class="modal-content" *ngIf="geminiInfo">
+        <div class="modal-content">
           <div class="info-section">
-            <h3 class="section-title">Estado de Configuración</h3>
+            <h3 class="section-title">Estado de Conexión</h3>
             <div class="status-item">
-              <div class="status-indicator" [class.success]="geminiInfo.isConfigured" [class.error]="!geminiInfo.isConfigured">
+              <div class="status-indicator" [class.success]="backendStatus?.status === 'healthy'" [class.error]="backendStatus?.status !== 'healthy'">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path *ngIf="geminiInfo.isConfigured" d="M20 6L9 17l-5-5"/>
-                  <circle *ngIf="!geminiInfo.isConfigured" cx="12" cy="12" r="10"/>
-                  <line *ngIf="!geminiInfo.isConfigured" x1="15" y1="9" x2="9" y2="15"/>
-                  <line *ngIf="!geminiInfo.isConfigured" x1="9" y1="9" x2="15" y2="15"/>
+                  <path *ngIf="backendStatus?.status === 'healthy'" d="M20 6L9 17l-5-5"/>
+                  <circle *ngIf="backendStatus?.status !== 'healthy'" cx="12" cy="12" r="10"/>
+                  <line *ngIf="backendStatus?.status !== 'healthy'" x1="15" y1="9" x2="9" y2="15"/>
+                  <line *ngIf="backendStatus?.status !== 'healthy'" x1="9" y1="9" x2="15" y2="15"/>
                 </svg>
               </div>
-              <span>{{ geminiInfo.isConfigured ? 'API Key configurada' : 'API Key no configurada' }}</span>
+              <span>{{ backendStatus?.status === 'healthy' ? 'Backend conectado' : 'Backend desconectado' }}</span>
             </div>
           </div>
 
           <div class="info-section">
-            <h3 class="section-title">Modelo de IA</h3>
+            <h3 class="section-title">Configuración Actual</h3>
             <div class="info-grid">
               <div class="info-item">
-                <span class="label">Modelo actual:</span>
-                <span class="value">{{ geminiInfo.model }}</span>
+                <span class="label">Carrera seleccionada:</span>
+                <span class="value">{{ getCurrentCareerName() }}</span>
               </div>
               <div class="info-item">
-                <span class="label">Versión:</span>
-                <span class="value">{{ geminiInfo.version }}</span>
+                <span class="label">Código de carrera:</span>
+                <span class="value">{{ getCurrentCareerCode() }}</span>
               </div>
               <div class="info-item">
-                <span class="label">Librería:</span>
-                <span class="value">&#64;google/generative-ai v{{ geminiInfo.libraryVersion }}</span>
+                <span class="label">Sesión activa:</span>
+                <span class="value">{{ hasActiveSession() ? 'Sí' : 'No' }}</span>
               </div>
             </div>
           </div>
 
           <div class="info-section">
-            <h3 class="section-title">Capacidades</h3>
+            <h3 class="section-title">Funcionalidades</h3>
             <div class="capabilities-grid">
-              <div *ngFor="let capability of geminiInfo.capabilities" class="capability-item">
+              <div class="capability-item">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <path d="M20 6L9 17l-5-5"/>
                 </svg>
-                <span>{{ capability }}</span>
+                <span>Chat inteligente con IA</span>
+              </div>
+              <div class="capability-item">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M20 6L9 17l-5-5"/>
+                </svg>
+                <span>Búsqueda de libros</span>
+              </div>
+              <div class="capability-item">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M20 6L9 17l-5-5"/>
+                </svg>
+                <span>RAG con base de conocimiento UIDE</span>
+              </div>
+              <div class="capability-item">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M20 6L9 17l-5-5"/>
+                </svg>
+                <span>Respuestas contextuales por carrera</span>
               </div>
             </div>
           </div>
@@ -71,8 +90,8 @@ import { GeminiInfoService, GeminiInfo } from '../../services/gemini-info.servic
             <button 
               class="test-button apple-button primary"
               (click)="testConnection()"
-              [disabled]="testing || !geminiInfo.isConfigured">
-              {{ testing ? 'Probando...' : 'Probar Conexión' }}
+              [disabled]="testing">
+              {{ testing ? 'Probando...' : 'Probar Backend' }}
             </button>
             
             <div *ngIf="testResult" class="test-result" 
@@ -97,12 +116,16 @@ import { GeminiInfoService, GeminiInfo } from '../../services/gemini-info.servic
             <h3 class="section-title">Información Técnica</h3>
             <div class="tech-info">
               <div class="tech-item">
-                <span class="label">Framework:</span>
+                <span class="label">Frontend:</span>
                 <span class="value">Angular 18</span>
               </div>
               <div class="tech-item">
-                <span class="label">Diseño:</span>
-                <span class="value">Apple Human Interface Guidelines</span>
+                <span class="label">Backend:</span>
+                <span class="value">FastAPI + Python</span>
+              </div>
+              <div class="tech-item">
+                <span class="label">IA:</span>
+                <span class="value">Google Gemini + RAG</span>
               </div>
               <div class="tech-item">
                 <span class="label">Modo:</span>
@@ -330,32 +353,75 @@ import { GeminiInfoService, GeminiInfo } from '../../services/gemini-info.servic
   `]
 })
 export class SystemInfoComponent implements OnInit {
-    geminiInfo: GeminiInfo | null = null;
+    backendStatus: BackendHealthStatus | null = null;
     testing = false;
     testResult: any = null;
     isDarkMode = false;
 
-    constructor(private geminiInfoService: GeminiInfoService) { }
+    constructor(private backendChatService: BackendChatService) { }
 
     async ngOnInit() {
-        this.geminiInfo = await this.geminiInfoService.getGeminiInfo();
         this.isDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        this.loadBackendStatus();
     }
 
     async testConnection() {
         this.testing = true;
         this.testResult = null;
 
-        try {
-            this.testResult = await this.geminiInfoService.testCurrentModel();
-        } catch (error) {
-            this.testResult = {
-                success: false,
-                error: 'Error inesperado durante la prueba'
-            };
-        } finally {
-            this.testing = false;
-        }
+        this.backendChatService.testChatSystem().subscribe({
+            next: (response) => {
+                this.testResult = {
+                    success: response.success || false,
+                    response: response.message || 'Conexión exitosa con el backend'
+                };
+                this.testing = false;
+            },
+            error: (error) => {
+                this.testResult = {
+                    success: false,
+                    error: error.message || 'Error de conexión con el backend'
+                };
+                this.testing = false;
+            }
+        });
+    }
+
+    private loadBackendStatus() {
+        this.backendChatService.testConnection().subscribe({
+            next: (response) => {
+                this.backendStatus = response;
+            },
+            error: (error) => {
+                this.backendStatus = {
+                    status: 'unhealthy',
+                    message: 'Error de conexión',
+                    timestamp: new Date().toISOString()
+                };
+            }
+        });
+    }
+
+    getCurrentCareerName(): string {
+        const carreraMap: { [key: string]: string } = {
+            'ADMINISTRACION': 'Administración de Empresas',
+            'MARKETING': 'Marketing',
+            'NEGOCIOS_INTERNACIONALES': 'Negocios Internacionales',
+            'SISTEMAS': 'Ingeniería en Sistemas',
+            'PSICOLOGIA': 'Psicología',
+            'ARQUITECTURA': 'Arquitectura',
+            'DERECHO': 'Derecho'
+        };
+        const carrera = this.backendChatService.getCurrentCarrera();
+        return carreraMap[carrera] || carrera;
+    }
+
+    getCurrentCareerCode(): string {
+        return this.backendChatService.getCurrentCarrera();
+    }
+
+    hasActiveSession(): boolean {
+        return this.backendChatService.hasActiveSession();
     }
 
     closeModal() {

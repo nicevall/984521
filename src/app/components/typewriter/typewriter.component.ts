@@ -81,10 +81,22 @@ export class TypewriterComponent implements OnInit, OnDestroy, OnChanges {
             this.displayText += this.text[this.currentIndex];
             this.currentIndex++;
 
+            // Velocidad variable: más rápido en espacios y puntuación
+            let nextSpeed = this.speed;
+            const currentChar = this.text[this.currentIndex - 1];
+            
+            if (currentChar === ' ') {
+                nextSpeed = this.speed * 0.3; // Espacios más rápidos
+            } else if (currentChar === '.' || currentChar === ',' || currentChar === '!' || currentChar === '?') {
+                nextSpeed = this.speed * 2; // Pausa en puntuación
+            } else if (currentChar === '\n') {
+                nextSpeed = this.speed * 3; // Pausa en saltos de línea
+            }
+
             // Programar el siguiente carácter
             this.typewriterInterval = setTimeout(() => {
                 this.typeNext();
-            }, this.speed);
+            }, nextSpeed);
         } else {
             // Terminamos de escribir
             this.isTyping = false;

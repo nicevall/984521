@@ -17,12 +17,26 @@ import { ConversationSummary } from '../../models/conversation.model';
          (click)="closeSidebar()">
     </div>
 
-    <aside class="sidebar apple-sidebar" [class.open]="chatState.sidebarOpen">
+    <aside class="sidebar apple-sidebar" [class.open]="chatState.sidebarOpen" [class.collapsed]="sidebarCollapsed">
       <div class="sidebar-header">
-        <h2 class="text-title-3">Conversaciones</h2>
+        <!-- Botón toggle para colapsar/expandir -->
+        <button 
+          class="toggle-sidebar apple-button icon-only secondary"
+          (click)="toggleSidebarCollapse()"
+          [title]="sidebarCollapsed ? 'Expandir sidebar' : 'Colapsar sidebar'">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+            <line [attr.x1]="sidebarCollapsed ? '15' : '9'" y1="9" [attr.x2]="sidebarCollapsed ? '9' : '15'" y2="15"/>
+            <line [attr.x1]="sidebarCollapsed ? '9' : '15'" y1="9" [attr.x2]="sidebarCollapsed ? '15' : '9'" y2="15"/>
+          </svg>
+        </button>
+        
+        <h2 class="text-title-3" [class.hidden]="sidebarCollapsed">Conversaciones</h2>
+        
         <button 
           class="close-sidebar apple-button icon-only secondary"
           (click)="closeSidebar()"
+          [class.hidden]="sidebarCollapsed"
           title="Cerrar sidebar">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <line x1="18" y1="6" x2="6" y2="18"/>
@@ -35,11 +49,13 @@ import { ConversationSummary } from '../../models/conversation.model';
         <!-- New Chat Button -->
         <button 
           class="new-chat-button apple-button primary"
-          (click)="startNewChat()">
+          (click)="startNewChat()"
+          [title]="sidebarCollapsed ? 'Nueva conversación' : ''"
+          [class.icon-only]="sidebarCollapsed">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M12 5v14M5 12h14"/>
           </svg>
-          Nueva conversación
+          <span [class.hidden]="sidebarCollapsed">Nueva conversación</span>
         </button>
 
         <!-- Conversations List -->
@@ -50,17 +66,26 @@ import { ConversationSummary } from '../../models/conversation.model';
             [class.active]="isActiveConversation(conversation.id)"
             (click)="loadConversation(conversation.id)">
             
-            <div class="conversation-info">
-              <!-- MOSTRAR SIEMPRE TÍTULO Y PREVIEW -->
-              <h4 class="conversation-title">{{ conversation.title }}</h4>
-              <p class="conversation-preview">{{ conversation.lastMessage }}</p>
-              <div class="conversation-meta">
-                <span class="conversation-time">{{ formatTime(conversation.updatedAt) }}</span>
-                <span class="conversation-count">{{ conversation.messageCount }} mensajes</span>
+            <div class="conversation-info" [class.collapsed]="sidebarCollapsed">
+              <!-- En modo colapsado, mostrar solo ícono -->
+              <div class="conversation-icon" *ngIf="sidebarCollapsed">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/>
+                </svg>
+              </div>
+              
+              <!-- En modo expandido, mostrar información completa -->
+              <div class="conversation-details" [class.hidden]="sidebarCollapsed">
+                <h4 class="conversation-title">{{ conversation.title }}</h4>
+                <p class="conversation-preview">{{ conversation.lastMessage }}</p>
+                <div class="conversation-meta">
+                  <span class="conversation-time">{{ formatTime(conversation.updatedAt) }}</span>
+                  <span class="conversation-count">{{ conversation.messageCount }} mensajes</span>
+                </div>
               </div>
             </div>
 
-            <div class="conversation-actions">
+            <div class="conversation-actions" [class.hidden]="sidebarCollapsed">
               <button 
                 class="action-button"
                 (click)="deleteConversation($event, conversation.id)"
@@ -91,27 +116,31 @@ import { ConversationSummary } from '../../models/conversation.model';
         <div class="settings-section">
           <button 
             class="settings-button apple-button secondary"
-            (click)="openSettings()">
+            (click)="openSettings()"
+            [title]="sidebarCollapsed ? 'Configuración' : ''"
+            [class.icon-only]="sidebarCollapsed">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <circle cx="12" cy="12" r="3"/>
               <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1 1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
             </svg>
-            Configuración
+            <span [class.hidden]="sidebarCollapsed">Configuración</span>
           </button>
 
           <button 
             class="export-button apple-button secondary"
-            (click)="exportConversations()">
+            (click)="exportConversations()"
+            [title]="sidebarCollapsed ? 'Exportar' : ''"
+            [class.icon-only]="sidebarCollapsed">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
               <polyline points="7,10 12,15 17,10"/>
               <line x1="12" y1="15" x2="12" y2="3"/>
             </svg>
-            Exportar
+            <span [class.hidden]="sidebarCollapsed">Exportar</span>
           </button>
         </div>
 
-        <div class="app-info">
+        <div class="app-info" [class.collapsed]="sidebarCollapsed">
           <div class="app-branding">
             <div class="app-icon">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -120,9 +149,9 @@ import { ConversationSummary } from '../../models/conversation.model';
                 <path d="M12 1v6M12 17v6M4.22 4.22l4.24 4.24M15.54 15.54l4.24 4.24M1 12h6M17 12h6M4.22 19.78l4.24-4.24M15.54 8.46l4.24-4.24"/>
               </svg>
             </div>
-            <span class="app-title">Chatbot v1.0</span>
+            <span class="app-title" [class.hidden]="sidebarCollapsed">Chatbot v1.0</span>
           </div>
-          <p class="powered-by">Powered by Gemini AI</p>
+          <p class="powered-by" [class.hidden]="sidebarCollapsed">Powered by Gemini AI</p>
         </div>
       </div>
     </aside>
@@ -168,10 +197,28 @@ import { ConversationSummary } from '../../models/conversation.model';
       height: 100vh;
       z-index: 200;
       transform: translateX(-100%);
-      transition: transform 0.3s cubic-bezier(0.4, 0.0, 0.2, 1);
+      transition: all 0.3s cubic-bezier(0.4, 0.0, 0.2, 1);
       
       &.open {
         transform: translateX(0);
+      }
+      
+      /* Estado colapsado - solo en desktop */
+      &.collapsed {
+        width: 70px;
+        
+        .sidebar-header {
+          justify-content: center;
+          padding: 16px 8px;
+        }
+        
+        .sidebar-content {
+          padding: 16px 8px;
+        }
+        
+        .sidebar-footer {
+          padding: 16px 8px;
+        }
       }
       
       @media (min-width: 769px) {
@@ -180,6 +227,13 @@ import { ConversationSummary } from '../../models/conversation.model';
         
         &.open {
           transform: none;
+        }
+      }
+      
+      @media (max-width: 768px) {
+        /* En móvil, ignorar el estado collapsed */
+        &.collapsed {
+          width: 280px;
         }
       }
     }
@@ -227,6 +281,35 @@ import { ConversationSummary } from '../../models/conversation.model';
           display: none;
         }
       }
+      
+      .toggle-sidebar {
+        width: 28px;
+        height: 28px;
+        border-radius: 6px;
+        background: rgba(0, 0, 0, 0.05);
+        border: none;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        
+        &:hover {
+          background: rgba(0, 0, 0, 0.1);
+          transform: scale(1.05);
+        }
+        
+        svg {
+          width: 16px;
+          height: 16px;
+          color: #333;
+          transition: transform 0.2s ease;
+        }
+        
+        @media (max-width: 768px) {
+          display: none;
+        }
+      }
     }
 
     .sidebar-content {
@@ -269,6 +352,17 @@ import { ConversationSummary } from '../../models/conversation.model';
         width: 16px;
         height: 16px;
       }
+      
+      &.icon-only {
+        width: 44px;
+        height: 44px;
+        padding: 12px;
+        border-radius: 12px;
+        
+        span {
+          display: none;
+        }
+      }
     }
 
     .conversations-list {
@@ -285,17 +379,22 @@ import { ConversationSummary } from '../../models/conversation.model';
       cursor: pointer;
       transition: all 0.2s ease;
       border: none;
-      background: transparent;
+      background: rgba(255, 255, 255, 0.4);
       position: relative;
+      border: 1px solid rgba(0, 0, 0, 0.05);
       
       &:hover {
-        background: rgba(0, 0, 0, 0.05);
+        background: rgba(255, 255, 255, 0.6);
+        border-color: rgba(0, 0, 0, 0.1);
+        transform: translateY(-1px);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
       }
       
       &.active {
         background: #007aff;
         color: white;
         box-shadow: 0 2px 8px rgba(0, 122, 255, 0.3);
+        border-color: #007aff;
         
         .conversation-title,
         .conversation-preview,
@@ -319,12 +418,37 @@ import { ConversationSummary } from '../../models/conversation.model';
       flex: 1;
       min-width: 0;
       text-align: left;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      
+      &.collapsed {
+        justify-content: center;
+        text-align: center;
+      }
+      
+      .conversation-icon {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #6e6e73;
+        
+        svg {
+          width: 20px;
+          height: 20px;
+        }
+      }
+      
+      .conversation-details {
+        flex: 1;
+        min-width: 0;
+      }
       
       .conversation-title {
         font-size: 15px;
         font-weight: 600;
         margin: 0 0 6px 0;
-        color: #1d1d1f;
+        color: #8e8e93;
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
@@ -351,14 +475,14 @@ import { ConversationSummary } from '../../models/conversation.model';
       
       .conversation-time {
         font-size: 11px;
-        color: #8e8e93;
+        color: #6e6e73;
         font-weight: 500;
       }
       
       .conversation-count {
         font-size: 10px;
-        color: #c7c7cc;
-        background: rgba(0, 0, 0, 0.05);
+        color: #6e6e73;
+        background: rgba(0, 0, 0, 0.1);
         padding: 2px 6px;
         border-radius: 8px;
         font-weight: 500;
@@ -470,6 +594,18 @@ import { ConversationSummary } from '../../models/conversation.model';
           height: 16px;
           color: #6e6e73;
         }
+        
+        &.icon-only {
+          width: 44px;
+          height: 44px;
+          padding: 12px;
+          border-radius: 8px;
+          justify-content: center;
+          
+          span {
+            display: none;
+          }
+        }
       }
     }
 
@@ -477,6 +613,24 @@ import { ConversationSummary } from '../../models/conversation.model';
       text-align: center;
       padding-top: 12px;
       border-top: 0.5px solid rgba(0, 0, 0, 0.05);
+      
+      &.collapsed {
+        .app-branding {
+          justify-content: center;
+        }
+      }
+    }
+    
+    .app-branding {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+    
+    .hidden {
+      display: none !important;
     }
 
     /* Dark mode */
@@ -505,6 +659,18 @@ import { ConversationSummary } from '../../models/conversation.model';
             color: #ffffff;
           }
         }
+        
+        .toggle-sidebar {
+          background: rgba(255, 255, 255, 0.1);
+          
+          &:hover {
+            background: rgba(255, 255, 255, 0.2);
+          }
+          
+          svg {
+            color: #ffffff;
+          }
+        }
       }
       
       .sidebar-footer {
@@ -513,8 +679,14 @@ import { ConversationSummary } from '../../models/conversation.model';
       }
       
       .conversation-item {
+        background: rgba(44, 44, 46, 0.6);
+        border-color: rgba(255, 255, 255, 0.1);
+        
         &:hover {
-          background: rgba(255, 255, 255, 0.05);
+          background: rgba(58, 58, 60, 0.8);
+          border-color: rgba(255, 255, 255, 0.2);
+          transform: translateY(-1px);
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
         }
       }
       
@@ -523,16 +695,16 @@ import { ConversationSummary } from '../../models/conversation.model';
       }
       
       .conversation-preview {
-        color: #8e8e93;
+        color: #d1d1d6;
       }
       
       .conversation-time {
-        color: #6e6e73;
+        color: #8e8e93;
       }
       
       .conversation-count {
-        background: rgba(255, 255, 255, 0.1);
-        color: #8e8e93;
+        background: rgba(255, 255, 255, 0.15);
+        color: #a1a1a6;
       }
       
       .settings-section button {
@@ -578,9 +750,13 @@ export class ConversationListComponent implements OnInit, OnDestroy {
     sidebarOpen: false
   };
 
+  sidebarCollapsed: boolean = false;
   private destroy$ = new Subject<void>();
 
-  constructor(private chatStorage: ChatStorageService) { }
+  constructor(private chatStorage: ChatStorageService) { 
+    // Cargar estado colapsado desde localStorage
+    this.sidebarCollapsed = localStorage.getItem('sidebar-collapsed') === 'true';
+  }
 
   ngOnInit() {
     // Subscribe to chat state changes
@@ -589,6 +765,9 @@ export class ConversationListComponent implements OnInit, OnDestroy {
       .subscribe(state => {
         this.chatState = state;
       });
+    
+    // Inicializar ancho de sidebar
+    this.updateSidebarWidth();
   }
 
   ngOnDestroy() {
@@ -615,6 +794,19 @@ export class ConversationListComponent implements OnInit, OnDestroy {
   // Sidebar management
   closeSidebar() {
     this.chatStorage.setSidebarOpen(false);
+  }
+
+  toggleSidebarCollapse() {
+    this.sidebarCollapsed = !this.sidebarCollapsed;
+    // Guardar estado en localStorage
+    localStorage.setItem('sidebar-collapsed', this.sidebarCollapsed.toString());
+    // Actualizar variable CSS inmediatamente
+    this.updateSidebarWidth();
+  }
+
+  private updateSidebarWidth() {
+    const width = this.sidebarCollapsed ? '70px' : '280px';
+    document.documentElement.style.setProperty('--sidebar-width', width);
   }
 
   // Conversation management  

@@ -3,11 +3,12 @@ import { Component, Input, Output, EventEmitter, OnInit, ChangeDetectorRef } fro
 import { CommonModule } from '@angular/common';
 import { Message } from '../../models/message.model';
 import { TypewriterComponent } from '../typewriter/typewriter.component';
+import { HtmlTypewriterComponent } from '../html-typewriter/html-typewriter.component';
 
 @Component({
   selector: 'app-message',
   standalone: true,
-  imports: [CommonModule, TypewriterComponent],
+  imports: [CommonModule, TypewriterComponent, HtmlTypewriterComponent],
   template: `
     <div class="message-container" [class.user-message]="message.isUser" [class.ai-message]="!message.isUser">
       <div class="message-bubble" [class.user-bubble]="message.isUser" [class.ai-bubble]="!message.isUser">
@@ -44,7 +45,17 @@ import { TypewriterComponent } from '../typewriter/typewriter.component';
           </div>
 
           <!-- Texto del mensaje con formato mejorado -->
-          <div class="message-text" [innerHTML]="getFormattedContent()">
+          <div class="message-text">
+            <!-- Usar HTML typewriter para mensajes de IA nuevos (con formato) -->
+            <app-html-typewriter 
+              *ngIf="shouldUseTypewriter"
+              [html]="formattedContent"
+              [speed]="typewriterSpeed"
+              [startDelay]="typewriterDelay">
+            </app-html-typewriter>
+            
+            <!-- Mostrar contenido formateado para mensajes de usuario o IA antiguos -->
+            <div *ngIf="!shouldUseTypewriter" [innerHTML]="formattedContent"></div>
           </div>
 
           <!-- Error indicator -->
@@ -430,13 +441,15 @@ export class MessageComponent implements OnInit {
   constructor(private cdr: ChangeDetectorRef) { }
 
   ngOnInit() {
+    // Formatear contenido al inicializar
+    this.updateFormattedContent();
+    
     // Solo usar typewriter para mensajes nuevos de AI
     this.shouldUseTypewriter = this.useTypewriter &&
       !this.message.isUser &&
       this.isRecentMessage();
 
-    // Formatear contenido al inicializar
-    this.updateFormattedContent();
+    console.log('MessageComponent - shouldUseTypewriter:', this.shouldUseTypewriter, 'isUser:', this.message.isUser, 'isRecent:', this.isRecentMessage());
   }
 
   private isRecentMessage(): boolean {
@@ -444,89 +457,94 @@ export class MessageComponent implements OnInit {
     const messageTime = new Date(this.message.timestamp).getTime();
     const timeDiff = now - messageTime;
 
-    // Considerar "reciente" si es menor a 5 segundos
-    return timeDiff < 5000;
+    // Considerar "reciente" si es menor a 10 segundos (más generoso)
+    return timeDiff < 10000;
   }
 
   private updateFormattedContent(): void {
     this.formattedContent = this.formatMessage(this.message.content);
   }
 
-  getFormattedContent(): string {
-    if (this.shouldUseTypewriter) {
-      // Para typewriter, usar el componente separado
-      return `<app-typewriter 
-        [text]="${this.message.content}"
-        [speed]="${this.typewriterSpeed}"
-        [startDelay]="${this.typewriterDelay}">
-      </app-typewriter>`;
-    }
-
-    return this.formattedContent;
-  }
 
   formatMessage(content: string): string {
-    // Formateo avanzado para markdown y texto
-    let formatted = content;
+    // Formateo mejorado específico para el formato de IA
+    let formatted = content.trim();
 
-    // Convertir saltos de línea dobles en párrafos
-    formatted = formatted.split('\n\n').map(paragraph => {
-      if (paragraph.trim()) {
-        return `<p>${paragraph.trim()}</p>`;
+    // PASO 1: Limpiar formato problemático de asteriscos sueltos
+    // Remover asteriscos que no están en pares (markdown malformado)
+    formatted = formatted.replace(/(?<!\*)\*(?!\*)/g, '');
+    
+    // PASO 2: Dividir en bloques lógicos por párrafos dobles
+    const paragraphs = formatted.split(/\n\s*\n/);
+    
+    const formattedParagraphs = paragraphs.map(paragraph => {
+      let p = paragraph.trim();
+      if (!p) return '';
+
+      // PASO 3: Detectar y formatear listas correctamente
+      // Buscar líneas que empiecen con "- " o "* " para listas
+      const lines = p.split('\n');
+      const isListBlock = lines.some(line => line.trim().match(/^[-*•]\s+/));
+      
+      if (isListBlock) {
+        // Procesar como lista
+        const listItems = lines
+          .map(line => line.trim())
+          .filter(line => line)
+          .map(line => {
+            // Convertir "- texto" o "* texto" a item de lista
+            if (line.match(/^[-*•]\s+/)) {
+              const content = line.replace(/^[-*•]\s+/, '').trim();
+              return `<li>${this.formatInlineElements(content)}</li>`;
+            }
+            // Si no es item de lista, agregarlo como texto normal
+            return line;
+          })
+          .filter(line => line.startsWith('<li>'))
+          .join('');
+        
+        return listItems ? `<ul>${listItems}</ul>` : '';
       }
-      return '';
-    }).join('');
+      
+      // PASO 4: Formatear párrafos normales
+      p = this.formatInlineElements(p);
+      return `<p>${p}</p>`;
+    }).filter(p => p);
 
-    // Si no hay párrafos, convertir saltos simples en <br>
-    if (!formatted.includes('<p>')) {
-      formatted = content.replace(/\n/g, '<br>');
-    }
-
-    // Formatear elementos markdown básicos
+    // PASO 5: Unir todo y hacer limpieza final
+    formatted = formattedParagraphs.join('');
+    
+    // Limpiar elementos vacíos y espacios extra
     formatted = formatted
-      // Headers
-      .replace(/^### (.*$)/gm, '<h3>$1</h3>')
-      .replace(/^## (.*$)/gm, '<h2>$1</h2>')
-      .replace(/^# (.*$)/gm, '<h1>$1</h1>')
-
-      // Texto en negrita
-      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-      .replace(/__(.*?)__/g, '<strong>$1</strong>')
-
-      // Texto en cursiva
-      .replace(/\*(.*?)\*/g, '<em>$1</em>')
-      .replace(/_(.*?)_/g, '<em>$1</em>')
-
-      // Código inline
-      .replace(/`([^`]+)`/g, '<code>$1</code>')
-
-      // Bloques de código
-      .replace(/```(\w+)?\n([\s\S]*?)```/g, (match, lang, code) => {
-        return `<pre><code class="language-${lang || 'text'}">${this.escapeHtml(code.trim())}</code></pre>`;
-      })
-
-      // Enlaces
-      .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>')
-
-      // URLs automáticas
-      .replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank" rel="noopener">$1</a>')
-
-      // Listas no ordenadas
-      .replace(/^\* (.+$)/gm, '<li>$1</li>')
-      .replace(/(<li>.*<\/li>)/s, '<ul>$1</ul>')
-
-      // Listas ordenadas
-      .replace(/^\d+\. (.+$)/gm, '<li>$1</li>')
-      .replace(/(<li>.*<\/li>)/s, '<ol>$1</ol>')
-
-      // Citas
-      .replace(/^> (.+$)/gm, '<blockquote>$1</blockquote>')
-
-      // Líneas horizontales
-      .replace(/^---$/gm, '<hr>')
-      .replace(/^\*\*\*$/gm, '<hr>');
+      .replace(/<p>\s*<\/p>/g, '')
+      .replace(/<ul>\s*<\/ul>/g, '')
+      .replace(/\s+/g, ' ')
+      .trim();
 
     return formatted;
+  }
+
+  private formatInlineElements(text: string): string {
+    return text
+      // Texto en negrita (**texto**)
+      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+      .replace(/__(.*?)__/g, '<strong>$1</strong>')
+      
+      // Texto en cursiva (*texto*)
+      .replace(/(?<!\*)\*([^*\n]+?)\*(?!\*)/g, '<em>$1</em>')
+      .replace(/(?<!_)_([^_\n]+?)_(?!_)/g, '<em>$1</em>')
+      
+      // Código inline
+      .replace(/`([^`\n]+)`/g, '<code>$1</code>')
+      
+      // Enlaces
+      .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>')
+      
+      // URLs automáticas
+      .replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank" rel="noopener">$1</a>')
+      
+      // Saltos de línea simples
+      .replace(/\n/g, '<br>');
   }
 
   private escapeHtml(unsafe: string): string {

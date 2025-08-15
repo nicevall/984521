@@ -1,5 +1,5 @@
 // src/app/services/chat-storage.service.ts
-import { Injectable } from '@angular/core';
+import { Injectable, Inject, forwardRef } from '@angular/core';
 import { BehaviorSubject, Observable } from 'rxjs';
 import { Message } from '../models/message.model';
 import { Conversation, ConversationSummary } from '../models/conversation.model';
@@ -25,6 +25,13 @@ export class ChatStorageService {
 
   constructor() {
     this.loadConversations();
+  }
+
+  // Método para inyectar BackendChatService después de la construcción (evita dependencias circulares)
+  private backendChatService: any = null;
+  
+  setBackendChatService(service: any) {
+    this.backendChatService = service;
   }
 
   // Obtener estado actual
@@ -64,9 +71,12 @@ export class ChatStorageService {
     const currentState = this.getCurrentState();
     let conversation = currentState.currentConversation;
 
+    console.log('ChatStorage: Adding message:', message);
+
     // Si no hay conversación activa, crear una nueva SOLO cuando se añade el primer mensaje
     if (!conversation) {
       conversation = this.createNewConversation();
+      console.log('ChatStorage: Created new conversation');
     }
 
     const newMessage: Message = {
@@ -75,12 +85,20 @@ export class ChatStorageService {
       timestamp: new Date()
     };
 
+    console.log('ChatStorage: New message created:', newMessage);
+
     conversation.messages.push(newMessage);
     conversation.updatedAt = new Date();
 
-    // Actualizar título si es el primer mensaje del usuario
-    if (conversation.messages.length === 1 && message.isUser) {
-      conversation.title = this.generateTitle(message.content);
+    console.log('ChatStorage: Conversation after adding message:', conversation);
+
+    // Actualizar título: generar título inteligente después de la primera respuesta de IA
+    if (conversation.messages.length === 2 && !message.isUser) {
+      // Generar título inteligente usando IA
+      this.generateIntelligentTitle(conversation);
+    } else if (conversation.messages.length === 1 && message.isUser) {
+      // Título temporal mientras esperamos la respuesta de IA
+      conversation.title = this.generateSimpleTitle(message.content);
     }
 
     this.updateState({ currentConversation: conversation });
@@ -270,7 +288,7 @@ export class ChatStorageService {
     return Date.now().toString(36) + Math.random().toString(36).substr(2);
   }
 
-  private generateTitle(content: string): string {
+  private generateSimpleTitle(content: string): string {
     const maxLength = 50;
     const title = content.trim();
 
@@ -279,6 +297,43 @@ export class ChatStorageService {
     }
 
     return title.substring(0, maxLength).trim() + '...';
+  }
+
+  private async generateIntelligentTitle(conversation: Conversation): Promise<void> {
+    try {
+      if (!this.backendChatService) {
+        console.warn('BackendChatService not available, using simple title');
+        return;
+      }
+
+      // Preparar mensajes para enviar al backend
+      const messages = conversation.messages.map(msg => ({
+        content: msg.content,
+        isUser: msg.isUser,
+        timestamp: msg.timestamp
+      }));
+
+      // Llamar al backend para generar título inteligente
+      this.backendChatService.generateConversationTitle(messages).subscribe({
+        next: (response: any) => {
+          if (response.success && response.title) {
+            console.log('Generated intelligent title:', response.title);
+            
+            // Actualizar el título de la conversación
+            conversation.title = response.title;
+            this.updateState({ currentConversation: conversation });
+            this.saveConversations();
+          }
+        },
+        error: (error: any) => {
+          console.error('Error generating intelligent title:', error);
+          // Mantener el título simple como fallback
+        }
+      });
+
+    } catch (error) {
+      console.error('Error in generateIntelligentTitle:', error);
+    }
   }
 
   private getLastUserMessage(messages: Message[]): string {
