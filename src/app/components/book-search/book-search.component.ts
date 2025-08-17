@@ -23,24 +23,111 @@ import { BookReservationComponent } from '../book-reservation/book-reservation.c
             >
             <button 
               (click)="searchBooks()" 
-              [disabled]="isSearching || !searchQuery.trim()"
+              [disabled]="isSearching"
               class="search-btn"
             >
               {{ isSearching ? 'Buscando...' : 'Buscar' }}
             </button>
           </div>
           
-          <div class="filter-section">
-            <select [(ngModel)]="selectedCareer" (change)="onCareerChange()" class="career-filter">
-              <option value="">Todas las carreras</option>
-              <option value="SISTEMAS">Ingeniería en Tecnologías de la Información y Comunicación</option>
-              <option value="ADMINISTRACION">Administración de Empresas</option>
-              <option value="MARKETING">Marketing</option>
-              <option value="NEGOCIOS_INTERNACIONALES">Negocios Internacionales</option>
-              <option value="PSICOLOGIA">Psicología</option>
-              <option value="ARQUITECTURA">Arquitectura</option>
-              <option value="DERECHO">Derecho</option>
-            </select>
+          <!-- Toggle for advanced filters -->
+          <div class="filter-toggle">
+            <button 
+              class="toggle-filters-btn" 
+              (click)="toggleAdvancedFilters()"
+              type="button"
+            >
+              {{ showAdvancedFilters ? '🔼 Ocultar Filtros' : '🔽 Filtros Avanzados' }}
+            </button>
+          </div>
+          
+          <!-- Advanced filters panel -->
+          <div class="advanced-filters" [class.expanded]="showAdvancedFilters">
+            <div class="filters-grid">
+              <div class="filter-group">
+                <label>Carrera:</label>
+                <select [(ngModel)]="selectedCareer" (change)="onFilterChange()" class="filter-select">
+                  <option value="">Todas las carreras</option>
+                  <option *ngFor="let carrera of availableCarreras" [value]="carrera.code">
+                    {{ carrera.name }}
+                  </option>
+                </select>
+              </div>
+              
+              <div class="filter-group">
+                <label>Categoría:</label>
+                <select [(ngModel)]="selectedCategory" (change)="onFilterChange()" class="filter-select">
+                  <option value="">Todas las categorías</option>
+                  <option *ngFor="let categoria of availableCategories" [value]="categoria">
+                    {{ categoria }}
+                  </option>
+                </select>
+              </div>
+              
+              <div class="filter-group">
+                <label>Disponibilidad:</label>
+                <select [(ngModel)]="selectedAvailability" (change)="onFilterChange()" class="filter-select">
+                  <option value="">Todos los libros</option>
+                  <option value="true">Solo disponibles</option>
+                  <option value="false">No disponibles</option>
+                </select>
+              </div>
+              
+              <div class="filter-group">
+                <label>Nivel Académico:</label>
+                <select [(ngModel)]="selectedLevel" (change)="onFilterChange()" class="filter-select">
+                  <option value="">Todos los niveles</option>
+                  <option *ngFor="let level of availableLevels" [value]="level">
+                    {{ level }}
+                  </option>
+                </select>
+              </div>
+              
+              <div class="filter-group">
+                <label>Año desde:</label>
+                <input 
+                  type="number" 
+                  [(ngModel)]="yearFrom" 
+                  (change)="onFilterChange()"
+                  [min]="minYear" 
+                  [max]="maxYear"
+                  class="filter-input"
+                  placeholder="Ej: 2000"
+                >
+              </div>
+              
+              <div class="filter-group">
+                <label>Año hasta:</label>
+                <input 
+                  type="number" 
+                  [(ngModel)]="yearTo" 
+                  (change)="onFilterChange()"
+                  [min]="minYear" 
+                  [max]="maxYear"
+                  class="filter-input"
+                  placeholder="Ej: 2024"
+                >
+              </div>
+              
+              <div class="filter-group">
+                <label>Idioma:</label>
+                <select [(ngModel)]="selectedLanguage" (change)="onFilterChange()" class="filter-select">
+                  <option value="">Todos los idiomas</option>
+                  <option *ngFor="let idioma of availableLanguages" [value]="idioma">
+                    {{ idioma }}
+                  </option>
+                </select>
+              </div>
+            </div>
+            
+            <div class="filter-actions">
+              <button class="clear-filters-btn" (click)="clearFilters()">
+                🗑️ Limpiar Filtros
+              </button>
+              <div class="active-filters" *ngIf="getActiveFiltersCount() > 0">
+                <span class="filters-count">{{ getActiveFiltersCount() }} filtro(s) activo(s)</span>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -188,6 +275,118 @@ import { BookReservationComponent } from '../book-reservation/book-reservation.c
 
     .search-btn:hover:not(:disabled) {
       background: #0056b3;
+    }
+
+    .search-btn:disabled {
+      background: #6c757d;
+      cursor: not-allowed;
+    }
+
+    /* Advanced Filters Styles */
+    .filter-toggle {
+      margin: 15px 0;
+      text-align: center;
+    }
+
+    .toggle-filters-btn {
+      background: #f8f9fa;
+      border: 1px solid #dee2e6;
+      padding: 8px 16px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 14px;
+      transition: all 0.3s;
+    }
+
+    .toggle-filters-btn:hover {
+      background: #e9ecef;
+    }
+
+    .advanced-filters {
+      background: #f8f9fa;
+      border-radius: 8px;
+      padding: 0;
+      margin-top: 15px;
+      max-height: 0;
+      overflow: hidden;
+      transition: all 0.3s ease-in-out;
+      border: 1px solid transparent;
+    }
+
+    .advanced-filters.expanded {
+      max-height: 500px;
+      padding: 20px;
+      border: 1px solid #dee2e6;
+    }
+
+    .filters-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 15px;
+      margin-bottom: 15px;
+    }
+
+    .filter-group {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .filter-group label {
+      font-weight: 500;
+      margin-bottom: 5px;
+      color: #495057;
+      font-size: 13px;
+    }
+
+    .filter-select, .filter-input {
+      padding: 8px 12px;
+      border: 1px solid #ced4da;
+      border-radius: 4px;
+      font-size: 14px;
+      transition: border-color 0.3s;
+    }
+
+    .filter-select:focus, .filter-input:focus {
+      outline: none;
+      border-color: #007bff;
+      box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+    }
+
+    .filter-actions {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-top: 15px;
+      border-top: 1px solid #dee2e6;
+    }
+
+    .clear-filters-btn {
+      background: #dc3545;
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 13px;
+      transition: background 0.3s;
+    }
+
+    .clear-filters-btn:hover {
+      background: #c82333;
+    }
+
+    .active-filters {
+      display: flex;
+      align-items: center;
+    }
+
+    .filters-count {
+      background: #007bff;
+      color: white;
+      padding: 4px 8px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 500;
     }
 
     .search-btn:disabled {
@@ -462,9 +661,29 @@ export class BookSearchComponent implements OnInit {
   showReservationModalFlag: boolean = false;
   selectedBook: any = null;
 
+  // Advanced filters properties
+  showAdvancedFilters: boolean = false;
+  selectedCategory: string = '';
+  selectedAvailability: string = '';
+  selectedLevel: string = '';
+  yearFrom: number | null = null;
+  yearTo: number | null = null;
+  selectedLanguage: string = '';
+
+  // Filter options from backend
+  availableCarreras: any[] = [];
+  availableCategories: string[] = [];
+  availableLevels: string[] = [];
+  availableLanguages: string[] = [];
+  minYear: number = 1990;
+  maxYear: number = 2024;
+
   constructor(private bookService: BookService) {}
 
   ngOnInit() {
+    // Load filter options
+    this.loadFilterOptions();
+    
     // Auto-search if there's an initial query
     if (this.searchQuery.trim()) {
       this.searchBooks();
@@ -472,7 +691,7 @@ export class BookSearchComponent implements OnInit {
   }
 
   searchBooks() {
-    if (!this.searchQuery.trim()) {
+    if (!this.searchQuery.trim() && !this.hasActiveFilters()) {
       return;
     }
 
@@ -480,11 +699,25 @@ export class BookSearchComponent implements OnInit {
     this.errorMessage = '';
     this.hasSearched = true;
 
-    this.bookService.searchBooks(this.searchQuery, this.selectedCareer || undefined).subscribe({
+    // Prepare search parameters with all filters
+    const availabilityValue = this.selectedAvailability === 'true' ? true : 
+                             this.selectedAvailability === 'false' ? false : 
+                             undefined;
+
+    this.bookService.searchBooks(
+      this.searchQuery || '', 
+      this.selectedCareer || undefined,
+      this.selectedCategory || undefined,
+      availabilityValue,
+      this.selectedLevel || undefined,
+      this.yearFrom || undefined,
+      this.yearTo || undefined,
+      this.selectedLanguage || undefined
+    ).subscribe({
       next: (response) => {
         this.isSearching = false;
-        if (response.success) {
-          this.searchResults = response.books || [];
+        if (response.success && response.data) {
+          this.searchResults = response.data.books || [];
         } else {
           this.errorMessage = 'Error en la búsqueda de libros';
           this.searchResults = [];
@@ -502,6 +735,93 @@ export class BookSearchComponent implements OnInit {
     if (this.hasSearched) {
       this.searchBooks();
     }
+  }
+
+  // Advanced filters methods
+  toggleAdvancedFilters() {
+    this.showAdvancedFilters = !this.showAdvancedFilters;
+  }
+
+  onFilterChange() {
+    if (this.hasSearched) {
+      this.searchBooks();
+    }
+  }
+
+  clearFilters() {
+    this.selectedCareer = '';
+    this.selectedCategory = '';
+    this.selectedAvailability = '';
+    this.selectedLevel = '';
+    this.yearFrom = null;
+    this.yearTo = null;
+    this.selectedLanguage = '';
+    
+    if (this.hasSearched) {
+      this.searchBooks();
+    }
+  }
+
+  getActiveFiltersCount(): number {
+    let count = 0;
+    if (this.selectedCareer) count++;
+    if (this.selectedCategory) count++;
+    if (this.selectedAvailability) count++;
+    if (this.selectedLevel) count++;
+    if (this.yearFrom) count++;
+    if (this.yearTo) count++;
+    if (this.selectedLanguage) count++;
+    return count;
+  }
+
+  hasActiveFilters(): boolean {
+    return this.getActiveFiltersCount() > 0;
+  }
+
+  loadFilterOptions() {
+    this.bookService.getFilterOptions().subscribe({
+      next: (response) => {
+        if (response.success && response.filters) {
+          this.availableCarreras = response.filters.carreras || [];
+          this.availableCategories = response.filters.categorias || [];
+          this.availableLevels = response.filters.niveles_academicos || [];
+          this.availableLanguages = response.filters.idiomas || [];
+          
+          if (response.filters.años) {
+            this.minYear = response.filters.años.min || 1990;
+            this.maxYear = response.filters.años.max || 2024;
+          }
+        }
+      },
+      error: (error) => {
+        console.error('Error loading filter options:', error);
+        // Provide fallback filter options
+        this.loadFallbackFilterOptions();
+      }
+    });
+  }
+
+  loadFallbackFilterOptions() {
+    // Fallback filter options based on known data
+    this.availableCarreras = [
+      {code: "SISTEMAS", name: "Ingeniería en Tecnologías de la Información y Comunicación"},
+      {code: "ADMINISTRACION", name: "Administración de Empresas"},
+      {code: "MARKETING", name: "Marketing"},
+      {code: "NEGOCIOS_INTERNACIONALES", name: "Negocios Internacionales"},
+      {code: "PSICOLOGIA", name: "Psicología"},
+      {code: "ARQUITECTURA", name: "Arquitectura"},
+      {code: "DERECHO", name: "Derecho"}
+    ];
+    
+    this.availableCategories = [
+      "Programación", "Python", "Inteligencia Artificial", "Bases de Datos",
+      "Marketing Digital", "Administración", "Psicología", "Derecho"
+    ];
+    
+    this.availableLevels = ["Pregrado", "Posgrado"];
+    this.availableLanguages = ["es", "en"];
+    this.minYear = 1990;
+    this.maxYear = 2024;
   }
 
   getStatusClass(status: string): string {

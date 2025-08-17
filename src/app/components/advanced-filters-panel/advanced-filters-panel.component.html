@@ -1,0 +1,407 @@
+<!-- src/app/components/advanced-filters-panel/advanced-filters-panel.component.html -->
+<div class="advanced-filters-panel" [class.visible]="isVisible" [class.collapsed]="isCollapsed">
+  
+  <!-- Panel Header -->
+  <div class="panel-header">
+    <div class="header-left">
+      <button class="toggle-btn" (click)="toggleCollapse()" title="Contraer/Expandir panel">
+        <i class="fas" [class.fa-chevron-down]="!isCollapsed" [class.fa-chevron-up]="isCollapsed"></i>
+      </button>
+      
+      <h3 class="panel-title">
+        <i class="fas fa-filter"></i>
+        Filtros Avanzados
+        <span class="filter-count" *ngIf="getActiveFiltersCount() > 0">
+          ({{ getActiveFiltersCount() }})
+        </span>
+      </h3>
+    </div>
+    
+    <div class="header-actions">
+      <button class="btn btn-sm btn-clear" (click)="clearAllFilters()" title="Limpiar todos los filtros">
+        <i class="fas fa-eraser"></i>
+        Limpiar
+      </button>
+      
+      <button class="btn btn-sm btn-close" (click)="closePanel()" title="Cerrar panel">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+  </div>
+
+  <!-- Panel Content -->
+  <div class="panel-content" *ngIf="!isCollapsed">
+    
+    <!-- Quick Filters -->
+    <div class="quick-filters-section">
+      <h4 class="section-title">
+        <i class="fas fa-bolt"></i>
+        Filtros Rápidos
+      </h4>
+      
+      <div class="quick-filters-grid">
+        <button 
+          *ngFor="let quickFilter of quickFilters"
+          class="quick-filter-btn"
+          [class]="'btn-' + quickFilter.color"
+          (click)="applyQuickFilter(quickFilter.id)"
+          [title]="quickFilter.label">
+          <i [class]="quickFilter.icon"></i>
+          <span>{{ quickFilter.label }}</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Filter Tabs -->
+    <div class="filter-tabs">
+      <nav class="tabs-nav">
+        <button 
+          class="tab-btn" 
+          [class.active]="activeTab === 'basic'"
+          (click)="setActiveTab('basic')">
+          <i class="fas fa-list"></i>
+          Básicos
+        </button>
+        
+        <button 
+          class="tab-btn" 
+          [class.active]="activeTab === 'text'"
+          (click)="setActiveTab('text')">
+          <i class="fas fa-search"></i>
+          Búsqueda
+        </button>
+        
+        <button 
+          class="tab-btn" 
+          [class.active]="activeTab === 'dates'"
+          (click)="setActiveTab('dates')">
+          <i class="fas fa-calendar"></i>
+          Fechas
+        </button>
+        
+        <button 
+          class="tab-btn" 
+          [class.active]="activeTab === 'fines'"
+          (click)="setActiveTab('fines')">
+          <i class="fas fa-dollar-sign"></i>
+          Multas
+        </button>
+        
+        <button 
+          class="tab-btn" 
+          [class.active]="activeTab === 'admin'"
+          (click)="setActiveTab('admin')"
+          *ngIf="showAdvanced">
+          <i class="fas fa-cog"></i>
+          Admin
+        </button>
+      </nav>
+    </div>
+
+    <!-- Tab Content -->
+    <div class="tab-content">
+      
+      <!-- Basic Filters Tab -->
+      <div class="tab-pane" *ngIf="activeTab === 'basic'">
+        <div class="filter-row">
+          <div class="filter-group">
+            <label for="statusFilter">Estado del Préstamo</label>
+            <select id="statusFilter" [(ngModel)]="filters.status_filter" class="form-control">
+              <option *ngFor="let status of statusOptions" [value]="status.value">
+                {{ status.label }}
+              </option>
+            </select>
+          </div>
+          
+          <div class="filter-group">
+            <label for="carreraFilter">Carrera</label>
+            <select id="carreraFilter" [(ngModel)]="filters.carrera_filter" class="form-control">
+              <option *ngFor="let carrera of carreraOptions" [value]="carrera.value">
+                {{ carrera.label }}
+              </option>
+            </select>
+          </div>
+        </div>
+
+        <div class="filter-row">
+          <div class="filter-group">
+            <label for="sortBy">Ordenar por</label>
+            <select id="sortBy" [(ngModel)]="filters.sort_by" class="form-control">
+              <option *ngFor="let sort of sortOptions" [value]="sort.value">
+                {{ sort.label }}
+              </option>
+            </select>
+          </div>
+          
+          <div class="filter-group">
+            <label for="sortOrder">Orden</label>
+            <select id="sortOrder" [(ngModel)]="filters.sort_order" class="form-control">
+              <option value="desc">Descendente</option>
+              <option value="asc">Ascendente</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- Text Search Tab -->
+      <div class="tab-pane" *ngIf="activeTab === 'text'">
+        <div class="filter-row">
+          <div class="filter-group">
+            <label for="studentNameSearch">Nombre del Estudiante</label>
+            <input 
+              type="text" 
+              id="studentNameSearch"
+              [(ngModel)]="filters.student_name_search" 
+              class="form-control"
+              placeholder="Buscar por nombre o apellido">
+          </div>
+          
+          <div class="filter-group">
+            <label for="studentCedulaSearch">Cédula del Estudiante</label>
+            <input 
+              type="text" 
+              id="studentCedulaSearch"
+              [(ngModel)]="filters.student_cedula_search" 
+              class="form-control"
+              placeholder="Ej: 1104567890">
+          </div>
+        </div>
+
+        <div class="filter-row">
+          <div class="filter-group">
+            <label for="bookTitleSearch">Título del Libro</label>
+            <input 
+              type="text" 
+              id="bookTitleSearch"
+              [(ngModel)]="filters.book_title_search" 
+              class="form-control"
+              placeholder="Buscar por título">
+          </div>
+          
+          <div class="filter-group">
+            <label for="bookAuthorSearch">Autor del Libro</label>
+            <input 
+              type="text" 
+              id="bookAuthorSearch"
+              [(ngModel)]="filters.book_author_search" 
+              class="form-control"
+              placeholder="Buscar por autor">
+          </div>
+        </div>
+      </div>
+
+      <!-- Dates Tab -->
+      <div class="tab-pane" *ngIf="activeTab === 'dates'">
+        <!-- Date Presets -->
+        <div class="date-presets">
+          <h5>Períodos Rápidos:</h5>
+          <div class="preset-buttons">
+            <button class="btn btn-sm btn-preset" (click)="setDatePreset('today')">Hoy</button>
+            <button class="btn btn-sm btn-preset" (click)="setDatePreset('week')">Última Semana</button>
+            <button class="btn btn-sm btn-preset" (click)="setDatePreset('month')">Último Mes</button>
+            <button class="btn btn-sm btn-preset" (click)="setDatePreset('semester')">Semestre Actual</button>
+            <button class="btn btn-sm btn-clear" (click)="setDatePreset('clear')">Limpiar Fechas</button>
+          </div>
+        </div>
+
+        <!-- Loan Dates -->
+        <div class="filter-row">
+          <div class="filter-group">
+            <label for="loanDateStart">Fecha de Préstamo - Desde</label>
+            <input 
+              type="date" 
+              id="loanDateStart"
+              [(ngModel)]="filters.loan_date_start" 
+              class="form-control">
+          </div>
+          
+          <div class="filter-group">
+            <label for="loanDateEnd">Fecha de Préstamo - Hasta</label>
+            <input 
+              type="date" 
+              id="loanDateEnd"
+              [(ngModel)]="filters.loan_date_end" 
+              class="form-control">
+          </div>
+        </div>
+
+        <!-- Due Dates -->
+        <div class="filter-row">
+          <div class="filter-group">
+            <label for="dueDateStart">Fecha de Vencimiento - Desde</label>
+            <input 
+              type="date" 
+              id="dueDateStart"
+              [(ngModel)]="filters.due_date_start" 
+              class="form-control">
+          </div>
+          
+          <div class="filter-group">
+            <label for="dueDateEnd">Fecha de Vencimiento - Hasta</label>
+            <input 
+              type="date" 
+              id="dueDateEnd"
+              [(ngModel)]="filters.due_date_end" 
+              class="form-control">
+          </div>
+        </div>
+
+        <!-- Return Dates -->
+        <div class="filter-row">
+          <div class="filter-group">
+            <label for="returnDateStart">Fecha de Devolución - Desde</label>
+            <input 
+              type="date" 
+              id="returnDateStart"
+              [(ngModel)]="filters.return_date_start" 
+              class="form-control">
+          </div>
+          
+          <div class="filter-group">
+            <label for="returnDateEnd">Fecha de Devolución - Hasta</label>
+            <input 
+              type="date" 
+              id="returnDateEnd"
+              [(ngModel)]="filters.return_date_end" 
+              class="form-control">
+          </div>
+        </div>
+      </div>
+
+      <!-- Fines Tab -->
+      <div class="tab-pane" *ngIf="activeTab === 'fines'">
+        <!-- Has Fines Toggle -->
+        <div class="filter-row">
+          <div class="filter-group checkbox-group">
+            <label class="checkbox-label">
+              <input 
+                type="checkbox" 
+                [(ngModel)]="filters.has_fines"
+                [ngModelOptions]="{standalone: true}">
+              <span class="checkmark"></span>
+              Solo préstamos con multas
+            </label>
+          </div>
+        </div>
+
+        <!-- Fine Amount Range -->
+        <div class="filter-row">
+          <div class="filter-group">
+            <label for="fineAmountMin">Monto de Multa - Mínimo ($)</label>
+            <input 
+              type="number" 
+              id="fineAmountMin"
+              [(ngModel)]="filters.fine_amount_min" 
+              class="form-control"
+              min="0"
+              step="0.01"
+              placeholder="0.00">
+          </div>
+          
+          <div class="filter-group">
+            <label for="fineAmountMax">Monto de Multa - Máximo ($)</label>
+            <input 
+              type="number" 
+              id="fineAmountMax"
+              [(ngModel)]="filters.fine_amount_max" 
+              class="form-control"
+              min="0"
+              step="0.01"
+              placeholder="Ilimitado">
+          </div>
+        </div>
+
+        <!-- Days Overdue Range -->
+        <div class="filter-row">
+          <div class="filter-group">
+            <label for="daysOverdueMin">Días de Atraso - Mínimo</label>
+            <input 
+              type="number" 
+              id="daysOverdueMin"
+              [(ngModel)]="filters.days_overdue_min" 
+              class="form-control"
+              min="0"
+              placeholder="0">
+          </div>
+          
+          <div class="filter-group">
+            <label for="daysOverdueMax">Días de Atraso - Máximo</label>
+            <input 
+              type="number" 
+              id="daysOverdueMax"
+              [(ngModel)]="filters.days_overdue_max" 
+              class="form-control"
+              min="0"
+              placeholder="Ilimitado">
+          </div>
+        </div>
+
+        <!-- Fine Payment Status -->
+        <div class="filter-row">
+          <div class="filter-group">
+            <label for="finePaidStatus">Estado de Pago de Multa</label>
+            <select id="finePaidStatus" [(ngModel)]="filters.fine_paid_status" class="form-control">
+              <option [ngValue]="undefined">Todas las multas</option>
+              <option [ngValue]="true">Multas pagadas</option>
+              <option [ngValue]="false">Multas pendientes</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- Admin Tab -->
+      <div class="tab-pane" *ngIf="activeTab === 'admin' && showAdvanced">
+        <div class="filter-row">
+          <div class="filter-group">
+            <label for="bookCondition">Condición del Libro</label>
+            <select id="bookCondition" [(ngModel)]="filters.book_condition" class="form-control">
+              <option *ngFor="let condition of bookConditionOptions" [value]="condition.value">
+                {{ condition.label }}
+              </option>
+            </select>
+          </div>
+        </div>
+
+        <div class="filter-row">
+          <div class="filter-group checkbox-group">
+            <label class="checkbox-label">
+              <input 
+                type="checkbox" 
+                [(ngModel)]="filters.brought_cedula"
+                [ngModelOptions]="{standalone: true}">
+              <span class="checkmark"></span>
+              Estudiante trajo cédula física
+            </label>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Active Filters Summary -->
+    <div class="active-filters-summary" *ngIf="getActiveFiltersCount() > 0">
+      <h5>Filtros Activos:</h5>
+      <div class="active-filters-list">
+        <span 
+          *ngFor="let description of getActiveFiltersDescription()"
+          class="filter-tag">
+          {{ description }}
+        </span>
+      </div>
+    </div>
+
+    <!-- Action Buttons -->
+    <div class="panel-actions">
+      <button class="btn btn-primary btn-apply" (click)="applyFilters()">
+        <i class="fas fa-search"></i>
+        Aplicar Filtros
+      </button>
+      
+      <button class="btn btn-secondary btn-advanced" (click)="toggleAdvanced()">
+        <i class="fas fa-cogs"></i>
+        {{ showAdvanced ? 'Ocultar' : 'Mostrar' }} Avanzados
+      </button>
+    </div>
+
+  </div>
+</div>

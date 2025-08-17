@@ -1,0 +1,391 @@
+<!-- src/app/components/statistics-dashboard/statistics-dashboard.component.html -->
+<div class="statistics-dashboard">
+  <!-- Header Section -->
+  <div class="dashboard-header">
+    <div class="header-content">
+      <h1 class="dashboard-title">
+        <i class="fas fa-chart-line"></i>
+        Dashboard de Estadísticas Académicas - UIDE
+      </h1>
+      <p class="dashboard-subtitle">
+        Sistema avanzado de análisis y métricas bibliotecarias
+      </p>
+    </div>
+    
+    <div class="header-actions">
+      <button 
+        class="btn btn-info" 
+        (click)="showDataSummary()" 
+        [disabled]="loading"
+        title="Ver resumen de datos actuales">
+        <i class="fas fa-info-circle"></i>
+        Estado de Datos
+      </button>
+      
+      <button 
+        class="btn btn-generate" 
+        (click)="generateTestData()" 
+        [disabled]="loading"
+        title="Generar datos de prueba automatizados">
+        <i class="fas fa-magic"></i>
+        Generar Datos
+      </button>
+      
+      <button 
+        class="btn btn-filters" 
+        (click)="toggleAdvancedFilters()" 
+        [disabled]="loading"
+        [class.active]="showAdvancedFilters"
+        title="Abrir panel de filtros avanzados">
+        <i class="fas fa-filter"></i>
+        Filtros Avanzados
+      </button>
+      
+      <button 
+        class="btn btn-export" 
+        (click)="exportData()"
+        title="Exportar estadísticas actuales">
+        <i class="fas fa-download"></i>
+        Exportar
+      </button>
+    </div>
+  </div>
+
+  <!-- Loading State -->
+  <div *ngIf="loading" class="loading-container">
+    <div class="loading-spinner">
+      <i class="fas fa-spinner fa-spin"></i>
+      <p>Cargando estadísticas académicas...</p>
+    </div>
+  </div>
+
+  <!-- Error State -->
+  <div *ngIf="error" class="error-container">
+    <div class="error-message">
+      <i class="fas fa-exclamation-triangle"></i>
+      <p>{{ error }}</p>
+      <button class="btn btn-retry" (click)="loadDashboardData()">
+        <i class="fas fa-redo"></i>
+        Reintentar
+      </button>
+    </div>
+  </div>
+
+  <!-- Main Dashboard Content -->
+  <div *ngIf="!loading && !error" class="dashboard-content">
+    
+    <!-- Filters Section -->
+    <div class="filters-section">
+      <div class="filters-card">
+        <h3 class="filters-title">
+          <i class="fas fa-filter"></i>
+          Filtros y Períodos Académicos
+        </h3>
+        
+        <div class="filters-grid">
+          <!-- Period Filter -->
+          <div class="filter-group">
+            <label for="periodSelect">Período Académico</label>
+            <select 
+              id="periodSelect"
+              [(ngModel)]="selectedPeriodValue" 
+              (change)="onPeriodChange()"
+              class="form-select">
+              <option *ngFor="let period of availablePeriods" [value]="period.value">
+                {{ period.label }}
+              </option>
+            </select>
+          </div>
+
+          <!-- Career Filter -->
+          <div class="filter-group">
+            <label for="carreraSelect">Carrera</label>
+            <select 
+              id="carreraSelect"
+              [(ngModel)]="selectedCarrera" 
+              (change)="onCarreraChange()"
+              class="form-select">
+              <option *ngFor="let carrera of availableCarreras" [value]="carrera.code">
+                {{ carrera.name }}
+              </option>
+            </select>
+          </div>
+
+          <!-- Status Filter -->
+          <div class="filter-group">
+            <label for="statusSelect">Estado de Préstamos</label>
+            <select 
+              id="statusSelect"
+              [(ngModel)]="selectedStatusFilter" 
+              (change)="onStatusFilterChange()"
+              class="form-select">
+              <option *ngFor="let status of statusFilters" [value]="status.value">
+                {{ status.label }}
+              </option>
+            </select>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Summary Cards -->
+    <div class="summary-section">
+      <div class="summary-grid">
+        <div class="summary-card loans">
+          <div class="card-icon">
+            <i class="fas fa-book"></i>
+          </div>
+          <div class="card-content">
+            <h3>{{ summaryStats.totalLoans }}</h3>
+            <p>Préstamos Totales</p>
+          </div>
+        </div>
+
+        <div class="summary-card students">
+          <div class="card-icon">
+            <i class="fas fa-users"></i>
+          </div>
+          <div class="card-content">
+            <h3>{{ summaryStats.totalStudents }}</h3>
+            <p>Estudiantes Únicos</p>
+          </div>
+        </div>
+
+        <div class="summary-card overdue">
+          <div class="card-icon">
+            <i class="fas fa-exclamation-triangle"></i>
+          </div>
+          <div class="card-content">
+            <h3>{{ summaryStats.overdueLoans }}</h3>
+            <p>Préstamos Atrasados</p>
+          </div>
+        </div>
+
+        <div class="summary-card fines">
+          <div class="card-icon">
+            <i class="fas fa-dollar-sign"></i>
+          </div>
+          <div class="card-content">
+            <h3>${{ summaryStats.totalFines.toFixed(2) }}</h3>
+            <p>Multas Pendientes</p>
+          </div>
+        </div>
+
+        <div class="summary-card average">
+          <div class="card-icon">
+            <i class="fas fa-chart-bar"></i>
+          </div>
+          <div class="card-content">
+            <h3>{{ summaryStats.averageLoansPerDay.toFixed(1) }}</h3>
+            <p>Promedio Diario</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Charts Section -->
+    <div class="charts-section">
+      <div class="charts-grid">
+        
+        <!-- Career Statistics Chart -->
+        <div class="chart-card large">
+          <div class="chart-header">
+            <h3>
+              <i class="fas fa-graduation-cap"></i>
+              Estadísticas por Carrera
+            </h3>
+            <p class="chart-description">
+              Comparación de préstamos y estudiantes activos por carrera académica
+            </p>
+          </div>
+          <div class="chart-container">
+            <canvas #careerChart></canvas>
+          </div>
+        </div>
+
+        <!-- Loan Trends Chart -->
+        <div class="chart-card medium">
+          <div class="chart-header">
+            <h3>
+              <i class="fas fa-trending-up"></i>
+              Tendencias de Préstamos
+            </h3>
+            <p class="chart-description">
+              Evolución temporal de actividad bibliotecaria
+            </p>
+          </div>
+          <div class="chart-container">
+            <canvas #trendChart></canvas>
+          </div>
+        </div>
+
+        <!-- Popular Books Chart -->
+        <div class="chart-card medium">
+          <div class="chart-header">
+            <h3>
+              <i class="fas fa-star"></i>
+              Libros Más Populares
+            </h3>
+            <p class="chart-description">
+              Distribución de préstamos por título
+            </p>
+          </div>
+          <div class="chart-container">
+            <canvas #booksChart></canvas>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Loans Table with Fines -->
+    <div class="loans-section" *ngIf="filteredLoans.length > 0">
+      <div class="loans-card">
+        <div class="card-header">
+          <h3>
+            <i class="fas fa-list"></i>
+            Gestión de Préstamos y Multas
+          </h3>
+          <p class="card-description">
+            Vista detallada con información de multas y estados
+          </p>
+        </div>
+        
+        <div class="table-container">
+          <table class="loans-table">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Libro</th>
+                <th>Estudiante</th>
+                <th>Carrera</th>
+                <th>Estado</th>
+                <th>Fecha Vencimiento</th>
+                <th>Multa</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let loan of filteredLoans" 
+                  [class.overdue-row]="loan.status === 'overdue'"
+                  [class.fine-pending]="loan.fine_info && loan.fine_info.total_fine > 0">
+                
+                <td class="loan-id">{{ loan.id }}</td>
+                
+                <td class="book-title">
+                  <div class="book-info">
+                    <span class="title">{{ loan.book_title }}</span>
+                  </div>
+                </td>
+                
+                <td class="student-info">
+                  <div class="student-details">
+                    <span class="name">{{ loan.student_name }}</span>
+                    <span class="cedula">{{ loan.student_cedula }}</span>
+                  </div>
+                </td>
+                
+                <td class="carrera">{{ loan.student_carrera }}</td>
+                
+                <td class="status">
+                  <span class="status-badge" [ngClass]="'status-' + loan.status">
+                    {{ getStatusLabel(loan.status) }}
+                  </span>
+                </td>
+                
+                <td class="due-date">
+                  <span [class.overdue]="loan.status === 'overdue'">
+                    {{ loan.due_date | date:'dd/MM/yyyy' }}
+                  </span>
+                </td>
+                
+                <td class="fine-info">
+                  <div *ngIf="loan.fine_info && loan.fine_info.total_fine > 0" class="fine-details">
+                    <div class="fine-amount">${{ loan.fine_info.total_fine.toFixed(2) }}</div>
+                    <div class="fine-days">{{ loan.fine_info.days_overdue }} días</div>
+                    <div class="fine-status" [ngClass]="loan.fine_info.fine_paid ? 'paid' : 'unpaid'">
+                      {{ loan.fine_info.fine_paid ? 'Pagada' : 'Pendiente' }}
+                    </div>
+                  </div>
+                  <span *ngIf="!loan.fine_info || loan.fine_info.total_fine === 0" class="no-fine">
+                    Sin multa
+                  </span>
+                </td>
+                
+                <td class="actions">
+                  <button 
+                    *ngIf="loan.fine_info && loan.fine_info.total_fine > 0 && !loan.fine_info.fine_paid"
+                    class="btn btn-sm btn-pay"
+                    (click)="processFinePayment(loan)"
+                    title="Procesar pago de multa">
+                    <i class="fas fa-dollar-sign"></i>
+                    Pagar
+                  </button>
+                  
+                  <button 
+                    class="btn btn-sm btn-details"
+                    (click)="viewLoanDetails(loan)"
+                    title="Ver detalles del préstamo">
+                    <i class="fas fa-eye"></i>
+                    Ver
+                  </button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Academic Periods Info -->
+    <div class="info-section">
+      <div class="info-card">
+        <h3>
+          <i class="fas fa-calendar-alt"></i>
+          Períodos Académicos UIDE
+        </h3>
+        <div class="periods-info">
+          <div class="period-item">
+            <strong>Semestre I:</strong> 25 de Octubre - 15 de Marzo
+          </div>
+          <div class="period-item">
+            <strong>Semestre II:</strong> 25 de Abril - 31 de Agosto
+          </div>
+          <div class="period-note">
+            <i class="fas fa-info-circle"></i>
+            Las estadísticas se calculan automáticamente según los períodos académicos oficiales de UIDE
+          </div>
+        </div>
+      </div>
+      
+      <div class="info-card">
+        <h3>
+          <i class="fas fa-exclamation-circle"></i>
+          Sistema de Multas
+        </h3>
+        <div class="fines-info">
+          <div class="fine-rule">
+            <strong>Tarifa:</strong> $1.00 USD por día de retraso
+          </div>
+          <div class="fine-rule">
+            <strong>Restricción:</strong> No se permiten reservas hacia el pasado
+          </div>
+          <div class="fine-rule">
+            <strong>Máximo:</strong> 30 días de anticipación para reservas
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Advanced Filters Panel -->
+  <app-advanced-filters-panel
+    [isVisible]="showAdvancedFilters"
+    [filterStats]="filterStats"
+    (filtersChanged)="onAdvancedFiltersChanged($event)"
+    (quickFilterApplied)="onQuickFilterApplied($event)"
+    (filtersCleared)="onAdvancedFiltersCleared()"
+    (panelClosed)="onAdvancedFiltersPanelClosed()">
+  </app-advanced-filters-panel>
+</div>

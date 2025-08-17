@@ -1,7 +1,9 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { Subscription } from 'rxjs';
 import { BookService } from '../../services/book.service';
+import { AdminAuthService, AdminUser } from '../../services/admin-auth.service';
 
 @Component({
   selector: 'app-admin-dashboard',
@@ -10,7 +12,37 @@ import { BookService } from '../../services/book.service';
   template: `
     <div class="admin-dashboard">
       <header class="dashboard-header">
-        <h1>Panel de Administración - Biblioteca UIDE</h1>
+        <div class="header-info">
+          <h1>Panel de Administración - Biblioteca UIDE</h1>
+          <div class="admin-info" *ngIf="currentAdmin">
+            <span class="welcome-text">Bienvenido, {{ currentAdmin.nombre_completo }}</span>
+            <span class="role-badge" [class]="'role-' + currentAdmin.role">{{ getRoleDisplay() }}</span>
+          </div>
+        </div>
+        
+        <!-- Permissions Info -->
+        <div class="permissions-info" *ngIf="currentAdmin">
+          <h3>Permisos Actuales:</h3>
+          <div class="permission-grid">
+            <div class="permission-item" [class.enabled]="currentAdmin.can_approve">
+              <span class="permission-icon">✅</span>
+              <span>Aprobar Préstamos</span>
+            </div>
+            <div class="permission-item" [class.enabled]="currentAdmin.can_reject">
+              <span class="permission-icon">❌</span>
+              <span>Rechazar Préstamos</span>
+            </div>
+            <div class="permission-item" [class.enabled]="currentAdmin.can_return">
+              <span class="permission-icon">📤</span>
+              <span>Procesar Devoluciones</span>
+            </div>
+            <div class="permission-item" [class.enabled]="currentAdmin.can_manage_users">
+              <span class="permission-icon">👥</span>
+              <span>Gestionar Usuarios</span>
+            </div>
+          </div>
+        </div>
+        
         <div class="stats-overview" *ngIf="statistics">
           <div class="stat-card">
             <h3>{{ statistics.loan_stats.pending }}</h3>
@@ -88,7 +120,8 @@ import { BookService } from '../../services/book.service';
                 <button 
                   class="approve-btn"
                   (click)="approveLoan(loan.id, true)"
-                  [disabled]="processingLoan === loan.id"
+                  [disabled]="processingLoan === loan.id || !canApprove()"
+                  *ngIf="canApprove()"
                 >
                   {{ processingLoan === loan.id ? 'Procesando...' : 'Sí - Aprobar Préstamo' }}
                 </button>
@@ -96,10 +129,17 @@ import { BookService } from '../../services/book.service';
                 <button 
                   class="reject-btn"
                   (click)="approveLoan(loan.id, false)"
-                  [disabled]="processingLoan === loan.id"
+                  [disabled]="processingLoan === loan.id || !canReject()"
+                  *ngIf="canReject()"
                 >
                   {{ processingLoan === loan.id ? 'Procesando...' : 'No - Cancelar Reserva' }}
                 </button>
+                
+                <!-- Show permission message if no permissions -->
+                <div class="no-permission-message" *ngIf="!canApprove() && !canReject()">
+                  <p>⚠️ No tienes permisos para aprobar o rechazar préstamos</p>
+                  <p>Contacta a un administrador para obtener los permisos necesarios.</p>
+                </div>
               </div>
               
               <div class="notes-section">
@@ -185,10 +225,15 @@ import { BookService } from '../../services/book.service';
               <button 
                 class="return-btn"
                 (click)="returnBook(loan.id)"
-                [disabled]="!returnConditions[loan.id] || processingReturn === loan.id"
+                [disabled]="!returnConditions[loan.id] || processingReturn === loan.id || !canReturn()"
+                *ngIf="canReturn()"
               >
                 {{ processingReturn === loan.id ? 'Procesando...' : 'Procesar Devolución' }}
               </button>
+              
+              <div class="no-permission-message" *ngIf="!canReturn()">
+                <p>⚠️ No tienes permisos para procesar devoluciones</p>
+              </div>
             </div>
           </div>
         </div>
@@ -214,9 +259,102 @@ import { BookService } from '../../services/book.service';
       margin-bottom: 30px;
     }
 
+    .header-info {
+      margin-bottom: 20px;
+    }
+
     .dashboard-header h1 {
       color: #333;
+      margin-bottom: 10px;
+    }
+
+    .admin-info {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 15px;
+    }
+
+    .welcome-text {
+      color: #666;
+      font-size: 14px;
+    }
+
+    .role-badge {
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 12px;
+      font-weight: bold;
+      text-transform: uppercase;
+    }
+
+    .role-badge.role-admin {
+      background: #e74c3c;
+      color: white;
+    }
+
+    .role-badge.role-supervisor {
+      background: #f39c12;
+      color: white;
+    }
+
+    .role-badge.role-bibliotecario {
+      background: #27ae60;
+      color: white;
+    }
+
+    .permissions-info {
+      background: #f8f9fa;
+      border-radius: 8px;
+      padding: 15px;
       margin-bottom: 20px;
+    }
+
+    .permissions-info h3 {
+      color: #495057;
+      margin: 0 0 12px 0;
+      font-size: 14px;
+    }
+
+    .permission-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 8px;
+    }
+
+    .permission-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      border-radius: 6px;
+      font-size: 13px;
+      background: #e9ecef;
+      color: #6c757d;
+    }
+
+    .permission-item.enabled {
+      background: #d4edda;
+      color: #155724;
+    }
+
+    .permission-icon {
+      font-size: 14px;
+    }
+
+    .no-permission-message {
+      background: #fff3cd;
+      border: 1px solid #ffeaa7;
+      border-radius: 6px;
+      padding: 12px;
+      margin: 10px 0;
+      text-align: center;
+    }
+
+    .no-permission-message p {
+      margin: 4px 0;
+      color: #856404;
+      font-size: 13px;
     }
 
     .stats-overview {
@@ -484,11 +622,12 @@ import { BookService } from '../../services/book.service';
     }
   `]
 })
-export class AdminDashboardComponent implements OnInit {
+export class AdminDashboardComponent implements OnInit, OnDestroy {
   activeTab: 'pending' | 'active' = 'pending';
   pendingLoans: any[] = [];
   activeLoans: any[] = [];
   statistics: any = null;
+  currentAdmin: AdminUser | null = null;
   
   loanNotes: { [key: number]: string } = {};
   returnNotes: { [key: number]: string } = {};
@@ -500,12 +639,30 @@ export class AdminDashboardComponent implements OnInit {
   successMessage: string = '';
   errorMessage: string = '';
 
-  constructor(private bookService: BookService) {}
+  private subscription = new Subscription();
+
+  constructor(
+    private bookService: BookService,
+    private adminAuthService: AdminAuthService
+  ) {}
 
   ngOnInit() {
-    this.loadData();
+    // Subscribe to admin authentication state
+    this.subscription.add(
+      this.adminAuthService.currentAdmin$.subscribe(admin => {
+        this.currentAdmin = admin;
+        if (admin) {
+          this.loadData();
+        }
+      })
+    );
+    
     // Initialize return conditions to 'good' by default
     this.returnConditions = {};
+  }
+
+  ngOnDestroy() {
+    this.subscription.unsubscribe();
   }
 
   loadData() {
@@ -631,5 +788,26 @@ export class AdminDashboardComponent implements OnInit {
   clearMessages() {
     this.successMessage = '';
     this.errorMessage = '';
+  }
+
+  // Permission check methods
+  canApprove(): boolean {
+    return this.adminAuthService.canApproveLoans();
+  }
+
+  canReject(): boolean {
+    return this.adminAuthService.canRejectLoans();
+  }
+
+  canReturn(): boolean {
+    return this.adminAuthService.canReturnBooks();
+  }
+
+  canManageUsers(): boolean {
+    return this.adminAuthService.canManageUsers();
+  }
+
+  getRoleDisplay(): string {
+    return this.adminAuthService.getRoleDisplay();
   }
 }

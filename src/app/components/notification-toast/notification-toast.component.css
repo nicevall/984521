@@ -1,0 +1,335 @@
+/* src/app/components/notification-toast/notification-toast.component.css */
+
+.notification-container {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 10000;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-width: 400px;
+  pointer-events: none;
+}
+
+.notification-toast {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  padding: 16px;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  animation: slideInFromRight 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  pointer-events: all;
+  position: relative;
+  overflow: hidden;
+  max-width: 100%;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.notification-toast:hover {
+  transform: translateX(-5px);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.2);
+}
+
+.notification-toast.paused {
+  animation-play-state: paused;
+}
+
+/* Notification Types */
+.notification-success {
+  border-left: 4px solid #27ae60;
+}
+
+.notification-success .notification-icon {
+  color: #27ae60;
+}
+
+.notification-error {
+  border-left: 4px solid #e74c3c;
+}
+
+.notification-error .notification-icon {
+  color: #e74c3c;
+}
+
+.notification-warning {
+  border-left: 4px solid #f39c12;
+}
+
+.notification-warning .notification-icon {
+  color: #f39c12;
+}
+
+.notification-info {
+  border-left: 4px solid #3498db;
+}
+
+.notification-info .notification-icon {
+  color: #3498db;
+}
+
+/* Notification Icon */
+.notification-icon {
+  font-size: 1.5rem;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+/* Notification Content */
+.notification-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.notification-title {
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: #2c3e50;
+  margin-bottom: 4px;
+  line-height: 1.4;
+}
+
+.notification-message {
+  font-size: 0.9rem;
+  color: #5a6c7d;
+  line-height: 1.5;
+  margin-bottom: 6px;
+  word-wrap: break-word;
+}
+
+.notification-time {
+  font-size: 0.75rem;
+  color: #95a5a6;
+  font-weight: 500;
+}
+
+/* Notification Actions */
+.notification-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.notification-action-btn {
+  padding: 6px 12px;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.notification-action-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.notification-action-btn.primary {
+  background: linear-gradient(45deg, #3498db, #2980b9);
+  color: white;
+}
+
+.notification-action-btn.secondary {
+  background: linear-gradient(45deg, #95a5a6, #7f8c8d);
+  color: white;
+}
+
+.notification-action-btn.danger {
+  background: linear-gradient(45deg, #e74c3c, #c0392b);
+  color: white;
+}
+
+/* Close Button */
+.notification-close {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: none;
+  border: none;
+  color: #bdc3c7;
+  cursor: pointer;
+  font-size: 0.9rem;
+  padding: 4px;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.notification-close:hover {
+  background: rgba(0, 0, 0, 0.1);
+  color: #7f8c8d;
+}
+
+/* Progress Bar */
+.notification-progress {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  height: 3px;
+  background: linear-gradient(45deg, #3498db, #2980b9);
+  border-radius: 0 0 12px 12px;
+  animation: progressBar linear;
+}
+
+/* Animations */
+@keyframes slideInFromRight {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes progressBar {
+  from {
+    width: 100%;
+  }
+  to {
+    width: 0%;
+  }
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .notification-container {
+    top: 10px;
+    right: 10px;
+    left: 10px;
+    max-width: none;
+  }
+  
+  .notification-toast {
+    padding: 12px;
+    gap: 10px;
+  }
+  
+  .notification-title {
+    font-size: 0.9rem;
+  }
+  
+  .notification-message {
+    font-size: 0.85rem;
+  }
+  
+  .notification-actions {
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+  
+  .notification-action-btn {
+    flex: 1;
+    min-width: 80px;
+  }
+}
+
+@media (max-width: 480px) {
+  .notification-container {
+    top: 5px;
+    right: 5px;
+    left: 5px;
+  }
+  
+  .notification-toast {
+    padding: 10px;
+    gap: 8px;
+  }
+  
+  .notification-icon {
+    font-size: 1.3rem;
+  }
+}
+
+/* Dark Mode Support */
+@media (prefers-color-scheme: dark) {
+  .notification-toast {
+    background: rgba(28, 28, 30, 0.95);
+    border-color: rgba(255, 255, 255, 0.1);
+  }
+  
+  .notification-title {
+    color: #f2f2f7;
+  }
+  
+  .notification-message {
+    color: #ebebf5;
+  }
+  
+  .notification-time {
+    color: #98989d;
+  }
+  
+  .notification-close {
+    color: #8e8e93;
+  }
+  
+  .notification-close:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: #aeaeb2;
+  }
+}
+
+/* High Priority Notifications */
+.notification-toast.high-priority {
+  border: 2px solid #e74c3c;
+  animation: pulse 1s infinite alternate;
+}
+
+@keyframes pulse {
+  from {
+    box-shadow: 0 8px 32px rgba(231, 76, 60, 0.3);
+  }
+  to {
+    box-shadow: 0 8px 32px rgba(231, 76, 60, 0.6);
+  }
+}
+
+/* Multiple Actions Layout */
+.notification-actions.multiple {
+  flex-direction: row;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.notification-actions.multiple .notification-action-btn {
+  flex: none;
+  min-width: auto;
+}
+
+/* Loading State for Actions */
+.notification-action-btn.loading {
+  position: relative;
+  color: transparent;
+}
+
+.notification-action-btn.loading::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 14px;
+  height: 14px;
+  border: 2px solid transparent;
+  border-top: 2px solid currentColor;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: translate(-50%, -50%) rotate(0deg); }
+  100% { transform: translate(-50%, -50%) rotate(360deg); }
+}

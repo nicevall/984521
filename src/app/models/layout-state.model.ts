@@ -7,7 +7,7 @@ export interface LayoutState {
   navHeight: number;
 }
 
-export type ViewType = 'chat' | 'search' | 'admin';
+export type ViewType = 'chat' | 'search' | 'login' | 'admin' | 'statistics';
 
 export interface LayoutConfig {
   sidebarWidth: {

@@ -1,0 +1,648 @@
+/* src/app/components/statistics-dashboard/statistics-dashboard.component.css */
+
+.statistics-dashboard {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  padding: 20px;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+/* Header Section */
+.dashboard-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  padding: 25px;
+  border-radius: 15px;
+  margin-bottom: 30px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+}
+
+.header-content {
+  flex: 1;
+}
+
+.dashboard-title {
+  margin: 0;
+  font-size: 2.2rem;
+  font-weight: 700;
+  color: #2c3e50;
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.dashboard-title i {
+  color: #3498db;
+}
+
+.dashboard-subtitle {
+  margin: 8px 0 0 0;
+  font-size: 1.1rem;
+  color: #7f8c8d;
+  font-weight: 400;
+}
+
+.header-actions {
+  display: flex;
+  gap: 12px;
+}
+
+/* Button Styles */
+.btn {
+  padding: 12px 20px;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  text-decoration: none;
+  font-size: 0.9rem;
+}
+
+.btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+}
+
+.btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.btn-info {
+  background: linear-gradient(45deg, #3498db, #2980b9);
+  color: white;
+}
+
+.btn-generate {
+  background: linear-gradient(45deg, #e74c3c, #c0392b);
+  color: white;
+}
+
+.btn-filters {
+  background: linear-gradient(45deg, #9b59b6, #8e44ad);
+  color: white;
+}
+
+.btn-filters.active {
+  background: linear-gradient(45deg, #8e44ad, #7d3c98);
+  box-shadow: 0 4px 15px rgba(139, 69, 173, 0.4);
+}
+
+.btn-export {
+  background: linear-gradient(45deg, #27ae60, #219a52);
+  color: white;
+}
+
+.btn-retry {
+  background: linear-gradient(45deg, #3498db, #2980b9);
+  color: white;
+}
+
+.btn-pay {
+  background: linear-gradient(45deg, #f39c12, #e67e22);
+  color: white;
+}
+
+.btn-details {
+  background: linear-gradient(45deg, #9b59b6, #8e44ad);
+  color: white;
+}
+
+.btn-sm {
+  padding: 6px 12px;
+  font-size: 0.8rem;
+}
+
+/* Loading and Error States */
+.loading-container, .error-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 300px;
+  background: rgba(255, 255, 255, 0.9);
+  border-radius: 15px;
+  margin: 20px 0;
+}
+
+.loading-spinner {
+  text-align: center;
+  color: #3498db;
+}
+
+.loading-spinner i {
+  font-size: 3rem;
+  margin-bottom: 20px;
+}
+
+.loading-spinner p {
+  font-size: 1.2rem;
+  margin: 0;
+}
+
+.error-message {
+  text-align: center;
+  color: #e74c3c;
+}
+
+.error-message i {
+  font-size: 3rem;
+  margin-bottom: 20px;
+}
+
+/* Filters Section */
+.filters-section {
+  margin-bottom: 30px;
+}
+
+.filters-card {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  padding: 25px;
+  border-radius: 15px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+}
+
+.filters-title {
+  margin: 0 0 20px 0;
+  font-size: 1.4rem;
+  color: #2c3e50;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.filters-title i {
+  color: #3498db;
+}
+
+.filters-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 20px;
+}
+
+.filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.filter-group label {
+  font-weight: 600;
+  color: #34495e;
+  font-size: 0.95rem;
+}
+
+.form-select {
+  padding: 12px 15px;
+  border: 2px solid #ecf0f1;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  background: white;
+  transition: all 0.3s ease;
+}
+
+.form-select:focus {
+  outline: none;
+  border-color: #3498db;
+  box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+}
+
+/* Summary Section */
+.summary-section {
+  margin-bottom: 30px;
+}
+
+.summary-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 20px;
+}
+
+.summary-card {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  padding: 25px;
+  border-radius: 15px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  transition: transform 0.3s ease;
+}
+
+.summary-card:hover {
+  transform: translateY(-5px);
+}
+
+.card-icon {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  color: white;
+}
+
+.summary-card.loans .card-icon {
+  background: linear-gradient(45deg, #3498db, #2980b9);
+}
+
+.summary-card.students .card-icon {
+  background: linear-gradient(45deg, #27ae60, #219a52);
+}
+
+.summary-card.overdue .card-icon {
+  background: linear-gradient(45deg, #e74c3c, #c0392b);
+}
+
+.summary-card.fines .card-icon {
+  background: linear-gradient(45deg, #f39c12, #e67e22);
+}
+
+.summary-card.average .card-icon {
+  background: linear-gradient(45deg, #9b59b6, #8e44ad);
+}
+
+.card-content h3 {
+  margin: 0;
+  font-size: 2rem;
+  font-weight: 700;
+  color: #2c3e50;
+}
+
+.card-content p {
+  margin: 5px 0 0 0;
+  color: #7f8c8d;
+  font-weight: 500;
+  font-size: 0.9rem;
+}
+
+/* Charts Section */
+.charts-section {
+  margin-bottom: 30px;
+}
+
+.charts-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 30px;
+}
+
+.chart-card {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  padding: 25px;
+  border-radius: 15px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+}
+
+.chart-card.large {
+  grid-column: 1 / -1;
+}
+
+.chart-card.medium {
+  min-height: 400px;
+}
+
+.chart-header {
+  margin-bottom: 20px;
+}
+
+.chart-header h3 {
+  margin: 0 0 8px 0;
+  font-size: 1.3rem;
+  color: #2c3e50;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.chart-header i {
+  color: #3498db;
+}
+
+.chart-description {
+  margin: 0;
+  color: #7f8c8d;
+  font-size: 0.9rem;
+}
+
+.chart-container {
+  position: relative;
+  height: 400px;
+  width: 100%;
+}
+
+.chart-card.large .chart-container {
+  height: 500px;
+}
+
+/* Loans Section */
+.loans-section {
+  margin-bottom: 30px;
+}
+
+.loans-card {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  padding: 25px;
+  border-radius: 15px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+}
+
+.card-header {
+  margin-bottom: 20px;
+}
+
+.card-header h3 {
+  margin: 0 0 8px 0;
+  font-size: 1.4rem;
+  color: #2c3e50;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.card-header i {
+  color: #3498db;
+}
+
+.card-description {
+  margin: 0;
+  color: #7f8c8d;
+  font-size: 0.9rem;
+}
+
+.table-container {
+  overflow-x: auto;
+}
+
+.loans-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.loans-table th {
+  background: linear-gradient(45deg, #34495e, #2c3e50);
+  color: white;
+  padding: 15px 12px;
+  text-align: left;
+  font-weight: 600;
+  border: none;
+}
+
+.loans-table th:first-child {
+  border-radius: 8px 0 0 0;
+}
+
+.loans-table th:last-child {
+  border-radius: 0 8px 0 0;
+}
+
+.loans-table td {
+  padding: 12px;
+  border-bottom: 1px solid #ecf0f1;
+  vertical-align: middle;
+}
+
+.loans-table tr {
+  transition: background-color 0.3s ease;
+}
+
+.loans-table tr:hover {
+  background-color: rgba(52, 152, 219, 0.05);
+}
+
+.loans-table tr.overdue-row {
+  background-color: rgba(231, 76, 60, 0.1);
+}
+
+.loans-table tr.fine-pending {
+  background-color: rgba(243, 156, 18, 0.1);
+}
+
+.loan-id {
+  font-weight: 600;
+  color: #3498db;
+}
+
+.book-info .title {
+  font-weight: 500;
+  color: #2c3e50;
+}
+
+.student-details {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.student-details .name {
+  font-weight: 500;
+  color: #2c3e50;
+}
+
+.student-details .cedula {
+  font-size: 0.8rem;
+  color: #7f8c8d;
+}
+
+.status-badge {
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  text-transform: uppercase;
+}
+
+.status-pending {
+  background: #f39c12;
+  color: white;
+}
+
+.status-approved {
+  background: #27ae60;
+  color: white;
+}
+
+.status-on_loan {
+  background: #3498db;
+  color: white;
+}
+
+.status-overdue {
+  background: #e74c3c;
+  color: white;
+}
+
+.status-returned {
+  background: #95a5a6;
+  color: white;
+}
+
+.due-date .overdue {
+  color: #e74c3c;
+  font-weight: 600;
+}
+
+.fine-details {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.fine-amount {
+  font-weight: 600;
+  color: #e74c3c;
+}
+
+.fine-days {
+  font-size: 0.8rem;
+  color: #7f8c8d;
+}
+
+.fine-status.paid {
+  color: #27ae60;
+  font-size: 0.8rem;
+  font-weight: 500;
+}
+
+.fine-status.unpaid {
+  color: #e74c3c;
+  font-size: 0.8rem;
+  font-weight: 500;
+}
+
+.no-fine {
+  color: #7f8c8d;
+  font-style: italic;
+}
+
+.actions {
+  display: flex;
+  gap: 8px;
+}
+
+/* Info Section */
+.info-section {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 20px;
+}
+
+.info-card {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  padding: 25px;
+  border-radius: 15px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+}
+
+.info-card h3 {
+  margin: 0 0 15px 0;
+  font-size: 1.2rem;
+  color: #2c3e50;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.info-card i {
+  color: #3498db;
+}
+
+.periods-info, .fines-info {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.period-item, .fine-rule {
+  padding: 10px;
+  background: rgba(52, 152, 219, 0.1);
+  border-radius: 8px;
+  font-size: 0.9rem;
+}
+
+.period-note {
+  padding: 12px;
+  background: rgba(241, 196, 15, 0.1);
+  border-left: 4px solid #f1c40f;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  color: #8b7d0c;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Responsive Design */
+@media (max-width: 1200px) {
+  .charts-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .chart-card.medium {
+    grid-column: 1;
+  }
+}
+
+@media (max-width: 768px) {
+  .statistics-dashboard {
+    padding: 15px;
+  }
+  
+  .dashboard-header {
+    flex-direction: column;
+    gap: 20px;
+    text-align: center;
+  }
+  
+  .dashboard-title {
+    font-size: 1.8rem;
+  }
+  
+  .summary-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .filters-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .info-section {
+    grid-template-columns: 1fr;
+  }
+  
+  .actions {
+    flex-direction: column;
+  }
+}
+
+@media (max-width: 480px) {
+  .dashboard-title {
+    font-size: 1.5rem;
+  }
+  
+  .summary-card {
+    flex-direction: column;
+    text-align: center;
+    gap: 15px;
+  }
+  
+  .card-content h3 {
+    font-size: 1.5rem;
+  }
+}

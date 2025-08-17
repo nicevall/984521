@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { AdminAuthService } from './admin-auth.service';
 
 @Injectable({
   providedIn: 'root'
@@ -8,7 +9,10 @@ import { Observable } from 'rxjs';
 export class BookService {
   private baseUrl = 'http://localhost:8000/api/v1';
 
-  constructor(private http: HttpClient) {}
+  constructor(
+    private http: HttpClient,
+    private adminAuthService: AdminAuthService
+  ) {}
 
   private getHttpOptions() {
     return {
@@ -18,14 +22,34 @@ export class BookService {
     };
   }
 
-  // Search books
-  searchBooks(query: string, carrera?: string): Observable<any> {
-    const params: any = { query };
-    if (carrera) {
-      params.carrera = carrera;
-    }
+  // Search books with advanced filters
+  searchBooks(
+    query: string, 
+    carrera?: string,
+    categoria?: string,
+    disponible?: boolean,
+    nivel_academico?: string,
+    año_desde?: number,
+    año_hasta?: number,
+    idioma?: string
+  ): Observable<any> {
+    const params: any = {};
+    
+    if (query) params.q = query;
+    if (carrera) params.carrera = carrera;
+    if (categoria) params.categoria = categoria;
+    if (disponible !== undefined) params.disponible = disponible;
+    if (nivel_academico) params.nivel_academico = nivel_academico;
+    if (año_desde) params.año_desde = año_desde;
+    if (año_hasta) params.año_hasta = año_hasta;
+    if (idioma) params.idioma = idioma;
     
     return this.http.get(`${this.baseUrl}/books/search`, { params });
+  }
+
+  // Get available filter options
+  getFilterOptions(): Observable<any> {
+    return this.http.get(`${this.baseUrl}/books/filters`);
   }
 
   // Get book by ID
@@ -53,17 +77,17 @@ export class BookService {
     return this.http.get(`${this.baseUrl}/students/${cedula}/loans`);
   }
 
-  // Admin endpoints
+  // Admin endpoints (require authentication)
   getPendingLoans(): Observable<any> {
-    return this.http.get(`${this.baseUrl}/admin/loans/pending`);
+    return this.http.get(`${this.baseUrl}/admin/loans/pending`, this.adminAuthService.getAuthenticatedHttpOptions());
   }
 
   getActiveLoans(): Observable<any> {
-    return this.http.get(`${this.baseUrl}/admin/loans/active`);
+    return this.http.get(`${this.baseUrl}/admin/loans/active`, this.adminAuthService.getAuthenticatedHttpOptions());
   }
 
   getLoanStatistics(): Observable<any> {
-    return this.http.get(`${this.baseUrl}/admin/loans/stats`);
+    return this.http.get(`${this.baseUrl}/admin/stats`, this.adminAuthService.getAuthenticatedHttpOptions());
   }
 
   approveLoan(loanId: number, broughtCedula: boolean, notes?: string, loanDays?: number): Observable<any> {
@@ -75,7 +99,7 @@ export class BookService {
     return this.http.post(
       `${this.baseUrl}/admin/loans/${loanId}/approve`,
       payload,
-      this.getHttpOptions()
+      this.adminAuthService.getAuthenticatedHttpOptions()
     );
   }
 
@@ -87,7 +111,7 @@ export class BookService {
     return this.http.post(
       `${this.baseUrl}/admin/loans/${loanId}/return`,
       payload,
-      this.getHttpOptions()
+      this.adminAuthService.getAuthenticatedHttpOptions()
     );
   }
 

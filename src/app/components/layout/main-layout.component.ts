@@ -11,6 +11,12 @@ import { ChatComponent } from '../chat/chat.component';
 import { ConversationListComponent } from '../conversation-list/conversation-list.component';
 import { BookSearchComponent } from '../book-search/book-search.component';
 import { AdminDashboardComponent } from '../admin-dashboard/admin-dashboard.component';
+import { AdminLoginComponent } from '../admin-login/admin-login.component';
+import { StatisticsDashboardComponent } from '../statistics-dashboard/statistics-dashboard.component';
+import { NotificationToastComponent } from '../notification-toast/notification-toast.component';
+
+// Services
+import { AdminAuthService, AdminUser } from '../../services/admin-auth.service';
 
 @Component({
   selector: 'app-main-layout',
@@ -20,7 +26,10 @@ import { AdminDashboardComponent } from '../admin-dashboard/admin-dashboard.comp
     ChatComponent,
     ConversationListComponent,
     BookSearchComponent,
-    AdminDashboardComponent
+    AdminDashboardComponent,
+    AdminLoginComponent,
+    StatisticsDashboardComponent,
+    NotificationToastComponent
   ],
   template: `
     <div class="layout-container">
@@ -64,11 +73,40 @@ import { AdminDashboardComponent } from '../admin-dashboard/admin-dashboard.comp
             </button>
             <button 
               class="nav-tab" 
+              [class.active]="layoutState?.currentView === 'login'"
+              (click)="setCurrentView('login')"
+            >
+              Admin Login
+            </button>
+            <button 
+              class="nav-tab" 
               [class.active]="layoutState?.currentView === 'admin'"
               (click)="setCurrentView('admin')"
+              *ngIf="isAdminLoggedIn"
             >
               Admin Panel
             </button>
+            <button 
+              class="nav-tab" 
+              [class.active]="layoutState?.currentView === 'statistics'"
+              (click)="setCurrentView('statistics')"
+              *ngIf="isAdminLoggedIn"
+            >
+              Estadísticas
+            </button>
+            
+            <!-- Admin info when logged in -->
+            <div class="admin-info" *ngIf="currentAdmin">
+              <span class="admin-name">{{ currentAdmin.nombre_completo }}</span>
+              <span class="admin-role" [class]="'role-' + currentAdmin.role">{{ getRoleDisplay() }}</span>
+              <button class="logout-btn" (click)="logout()" title="Cerrar sesión">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+                  <polyline points="16,17 21,12 16,7"/>
+                  <line x1="21" y1="12" x2="9" y2="12"/>
+                </svg>
+              </button>
+            </div>
           </div>
         </div>
       </nav>
@@ -103,11 +141,24 @@ import { AdminDashboardComponent } from '../admin-dashboard/admin-dashboard.comp
           <app-book-search (reservationMade)="onReservationMade($event)"></app-book-search>
         </div>
         
+        <!-- Admin Login View -->
+        <div class="view-container" *ngIf="layoutState.currentView === 'login'">
+          <app-admin-login></app-admin-login>
+        </div>
+        
         <!-- Admin Dashboard View -->
         <div class="view-container" *ngIf="layoutState.currentView === 'admin'">
           <app-admin-dashboard></app-admin-dashboard>
         </div>
+        
+        <!-- Statistics Dashboard View -->
+        <div class="view-container statistics-view" *ngIf="layoutState.currentView === 'statistics'">
+          <app-statistics-dashboard></app-statistics-dashboard>
+        </div>
       </main>
+      
+      <!-- Notification Toasts -->
+      <app-notification-toast></app-notification-toast>
     </div>
   `,
   styles: [`
@@ -187,6 +238,7 @@ import { AdminDashboardComponent } from '../admin-dashboard/admin-dashboard.comp
     .nav-tabs {
       display: flex;
       gap: 6px;
+      align-items: center;
     }
 
     .nav-tab {
@@ -211,6 +263,64 @@ import { AdminDashboardComponent } from '../admin-dashboard/admin-dashboard.comp
       background: #007aff;
       color: white;
       box-shadow: 0 2px 8px rgba(0, 122, 255, 0.3);
+    }
+
+    /* Admin Info Styles */
+    .admin-info {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-left: 12px;
+      padding: 6px 12px;
+      background: rgba(0, 0, 0, 0.05);
+      border-radius: 8px;
+      font-size: 13px;
+    }
+
+    .admin-name {
+      color: #1d1d1f;
+      font-weight: 500;
+    }
+
+    .admin-role {
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: bold;
+      text-transform: uppercase;
+    }
+
+    .admin-role.role-admin {
+      background: #e74c3c;
+      color: white;
+    }
+
+    .admin-role.role-supervisor {
+      background: #f39c12;
+      color: white;
+    }
+
+    .admin-role.role-bibliotecario {
+      background: #27ae60;
+      color: white;
+    }
+
+    .logout-btn {
+      background: none;
+      border: none;
+      padding: 4px;
+      border-radius: 4px;
+      cursor: pointer;
+      color: #6e6e73;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .logout-btn:hover {
+      background: rgba(0, 0, 0, 0.1);
+      color: #e74c3c;
     }
 
     /* Mobile Overlay */
@@ -298,6 +408,11 @@ import { AdminDashboardComponent } from '../admin-dashboard/admin-dashboard.comp
       }
     }
 
+    .statistics-view {
+      padding: 0;
+      background: transparent;
+    }
+
     /* Dark mode */
     @media (prefers-color-scheme: dark) {
       .layout-container {
@@ -379,9 +494,14 @@ export class MainLayoutComponent implements OnInit, OnDestroy, AfterViewInit {
   @ViewChild('navigationRef') navigationRef!: ElementRef;
 
   layoutState: LayoutState;
+  currentAdmin: AdminUser | null = null;
+  isAdminLoggedIn: boolean = false;
   private destroy$ = new Subject<void>();
 
-  constructor(public layoutService: LayoutService) {
+  constructor(
+    public layoutService: LayoutService,
+    private adminAuthService: AdminAuthService
+  ) {
     // Inicializar con valores por defecto para evitar undefined
     this.layoutState = this.getDefaultState();
     console.log('[MainLayoutComponent] Constructor - default state:', this.layoutState);
@@ -407,6 +527,15 @@ export class MainLayoutComponent implements OnInit, OnDestroy, AfterViewInit {
         console.log('[MainLayoutComponent] Layout state updated:', state);
         this.layoutState = state || this.getDefaultState();
       });
+
+    // Subscribe to admin authentication state
+    this.adminAuthService.currentAdmin$
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(admin => {
+        this.currentAdmin = admin;
+        this.isAdminLoggedIn = !!admin;
+        console.log('[MainLayoutComponent] Admin state updated:', { admin, isLoggedIn: this.isAdminLoggedIn });
+      });
   }
 
   ngAfterViewInit() {
@@ -425,7 +554,15 @@ export class MainLayoutComponent implements OnInit, OnDestroy, AfterViewInit {
   setCurrentView(view: ViewType) {
     console.log('[MainLayoutComponent] setCurrentView called with:', view);
     console.log('[MainLayoutComponent] Current layoutState before:', this.layoutState);
-    this.layoutService.setCurrentView(view);
+    
+    // If trying to access admin or statistics without authentication, redirect to login
+    if ((view === 'admin' || view === 'statistics') && !this.isAdminLoggedIn) {
+      console.log('[MainLayoutComponent] Redirecting to login - admin access requires authentication');
+      this.layoutService.setCurrentView('login');
+    } else {
+      this.layoutService.setCurrentView(view);
+    }
+    
     console.log('[MainLayoutComponent] setCurrentView completed');
   }
 
@@ -434,5 +571,25 @@ export class MainLayoutComponent implements OnInit, OnDestroy, AfterViewInit {
     if (result.success) {
       console.log('Reservation made:', result);
     }
+  }
+
+  logout() {
+    this.adminAuthService.logout().subscribe({
+      next: () => {
+        console.log('Admin logged out successfully');
+        // Redirect to login view
+        this.setCurrentView('login');
+      },
+      error: (error) => {
+        console.error('Logout error:', error);
+        // Even if there's an error, do local logout
+        this.adminAuthService.logoutLocal();
+        this.setCurrentView('login');
+      }
+    });
+  }
+
+  getRoleDisplay(): string {
+    return this.adminAuthService.getRoleDisplay();
   }
 }

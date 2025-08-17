@@ -1,0 +1,53 @@
+<!-- src/app/components/notification-toast/notification-toast.component.html -->
+<div class="notification-container">
+  <div 
+    *ngFor="let notification of notifications" 
+    class="notification-toast" 
+    [class]="'notification-' + notification.type"
+    (mouseenter)="pauseAutoDismiss($event)"
+    (mouseleave)="resumeAutoDismiss($event)">
+    
+    <!-- Notification Icon -->
+    <div class="notification-icon">
+      <i [class]="getIcon(notification.type)"></i>
+    </div>
+    
+    <!-- Notification Content -->
+    <div class="notification-content">
+      <div class="notification-title" *ngIf="notification.title">
+        {{ notification.title }}
+      </div>
+      <div class="notification-message">
+        {{ notification.message }}
+      </div>
+      <div class="notification-time">
+        {{ getRelativeTime(notification.timestamp) }}
+      </div>
+    </div>
+    
+    <!-- Notification Actions -->
+    <div class="notification-actions" *ngIf="notification.actions && notification.actions.length > 0">
+      <button 
+        *ngFor="let action of notification.actions"
+        class="notification-action-btn"
+        [class]="action.style || 'primary'"
+        (click)="executeAction(action.action, notification.id)">
+        {{ action.label }}
+      </button>
+    </div>
+    
+    <!-- Close Button -->
+    <button 
+      class="notification-close"
+      (click)="removeNotification(notification.id)"
+      title="Cerrar notificación">
+      <i class="fas fa-times"></i>
+    </button>
+    
+    <!-- Progress Bar for auto-dismiss -->
+    <div 
+      *ngIf="!notification.persistent && notification.duration && notification.duration > 0"
+      class="notification-progress">
+    </div>
+  </div>
+</div>
