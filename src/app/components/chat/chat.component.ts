@@ -7,6 +7,7 @@ import { Subject, takeUntil } from 'rxjs';
 import { BackendChatService, ChatResponse } from '../../services/backend-chat.service';
 import { ChatStorageService } from '../../services/chat-storage.service';
 import { FileService } from '../../services/file.service';
+import { LayoutService } from '../../services/layout.service';
 import { BackendChatResponse, CarreraOption } from '../../models/backend-response.model';
 import { Message } from '../../models/message.model';
 import { ChatState } from '../../models/chat-state.model';
@@ -45,7 +46,7 @@ import { ClickOutsideDirective } from '../../directives/click-outside.directive'
           <button 
             class="sidebar-toggle apple-button icon-only secondary"
             (click)="onToggleSidebar()"
-            title="Toggle sidebar">
+            title="Mostrar/Ocultar conversaciones">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <line x1="3" y1="6" x2="21" y2="6"/>
               <line x1="3" y1="12" x2="21" y2="12"/>
@@ -287,20 +288,13 @@ import { ClickOutsideDirective } from '../../directives/click-outside.directive'
     </div>
   `,
   styles: [`
-    /* CSS optimizado - solo estilos esenciales */
+    /* CSS optimizado con nuevo sistema de layout - ALTURA CORREGIDA */
     .chat-container {
       display: flex;
       flex-direction: column;
-      height: 100vh;
-      margin-left: var(--sidebar-width, 280px);
+      height: 100vh; /* ALTURA COMPLETA */
       background: linear-gradient(180deg, #f5f5f7 0%, #fafafa 100%);
-      transition: margin-left 0.3s cubic-bezier(0.4, 0.0, 0.2, 1);
-    }
-
-    @media (max-width: 768px) {
-      .chat-container {
-        margin-left: 0;
-      }
+      overflow: hidden;
     }
 
     .chat-header {
@@ -323,13 +317,7 @@ import { ClickOutsideDirective } from '../../directives/click-outside.directive'
     .sidebar-toggle {
       position: absolute;
       left: 20px;
-      display: none;
-    }
-
-    @media (max-width: 768px) {
-      .sidebar-toggle {
-        display: flex;
-      }
+      display: flex; /* MOSTRAR SIEMPRE - tanto mobile como desktop */
     }
 
     .header-title {
@@ -375,6 +363,26 @@ import { ClickOutsideDirective } from '../../directives/click-outside.directive'
       flex: 1;
       overflow-y: auto;
       padding: 20px;
+      min-height: 0; /* Permite que flex funcione correctamente */
+      max-height: calc(100vh - 200px); /* LIMITAR ALTURA PARA DEJAR ESPACIO AL INPUT */
+      
+      /* Apple-style scrollbar */
+      &::-webkit-scrollbar {
+        width: 8px;
+      }
+      
+      &::-webkit-scrollbar-track {
+        background: transparent;
+      }
+      
+      &::-webkit-scrollbar-thumb {
+        background: rgba(0, 0, 0, 0.2);
+        border-radius: 4px;
+        
+        &:hover {
+          background: rgba(0, 0, 0, 0.3);
+        }
+      }
     }
 
     .messages-content {
@@ -435,6 +443,13 @@ import { ClickOutsideDirective } from '../../directives/click-outside.directive'
       backdrop-filter: blur(20px);
       border-top: 0.5px solid rgba(0, 0, 0, 0.1);
       padding: 16px 20px 20px;
+      flex-shrink: 0; /* Evita que se encoja */
+      position: fixed; /* FIJO EN BOTTOM */
+      bottom: 0;
+      left: 0;
+      right: 0;
+      z-index: 1000; /* Z-INDEX ALTO PARA QUE APAREZCA */
+      margin-left: var(--main-content-margin, 280px); /* RESPETAR SIDEBAR */
     }
 
     .file-upload-section {
@@ -704,7 +719,8 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
   constructor(
     private backendChatService: BackendChatService,
     private chatStorage: ChatStorageService,
-    private fileService: FileService
+    private fileService: FileService,
+    private layoutService: LayoutService
   ) {
     // Conectar el BackendChatService al ChatStorageService para generación de títulos
     this.chatStorage.setBackendChatService(this.backendChatService);
@@ -751,8 +767,8 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
 
   // MÉTODO CORREGIDO para toggle sidebar
   onToggleSidebar() {
-    console.log('Toggle sidebar clicked');
-    this.chatStorage.toggleSidebar();
+    console.log('Toggle sidebar clicked - using LayoutService');
+    this.layoutService.toggleSidebar();
   }
 
   toggleCareerSelector() {

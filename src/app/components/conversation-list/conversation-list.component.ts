@@ -1,10 +1,12 @@
 // src/app/components/conversation-list/conversation-list.component.ts
-import { Component, OnInit, OnDestroy, HostListener } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Subject, takeUntil } from 'rxjs';
 
 import { ChatStorageService } from '../../services/chat-storage.service';
+import { LayoutService } from '../../services/layout.service';
 import { ChatState } from '../../models/chat-state.model';
+import { LayoutState } from '../../models/layout-state.model';
 import { ConversationSummary } from '../../models/conversation.model';
 
 @Component({
@@ -12,31 +14,26 @@ import { ConversationSummary } from '../../models/conversation.model';
   standalone: true,
   imports: [CommonModule],
   template: `
-    <div class="sidebar-overlay" 
-         [class.visible]="chatState.sidebarOpen"
-         (click)="closeSidebar()">
-    </div>
-
-    <aside class="sidebar apple-sidebar" [class.open]="chatState.sidebarOpen" [class.collapsed]="sidebarCollapsed">
+    <aside class="sidebar apple-sidebar" [class.collapsed]="layoutState.sidebarCollapsed">
       <div class="sidebar-header">
         <!-- Botón toggle para colapsar/expandir -->
         <button 
           class="toggle-sidebar apple-button icon-only secondary"
-          (click)="toggleSidebarCollapse()"
-          [title]="sidebarCollapsed ? 'Expandir sidebar' : 'Colapsar sidebar'">
+          (click)="layoutService.toggleSidebarCollapse()"
+          [title]="layoutState.sidebarCollapsed ? 'Expandir sidebar' : 'Colapsar sidebar'">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
-            <line [attr.x1]="sidebarCollapsed ? '15' : '9'" y1="9" [attr.x2]="sidebarCollapsed ? '9' : '15'" y2="15"/>
-            <line [attr.x1]="sidebarCollapsed ? '9' : '15'" y1="9" [attr.x2]="sidebarCollapsed ? '15' : '9'" y2="15"/>
+            <line [attr.x1]="layoutState.sidebarCollapsed ? '15' : '9'" y1="9" [attr.x2]="layoutState.sidebarCollapsed ? '9' : '15'" y2="15"/>
+            <line [attr.x1]="layoutState.sidebarCollapsed ? '9' : '15'" y1="9" [attr.x2]="layoutState.sidebarCollapsed ? '15' : '9'" y2="15"/>
           </svg>
         </button>
         
-        <h2 class="text-title-3" [class.hidden]="sidebarCollapsed">Conversaciones</h2>
+        <h2 class="text-title-3" [class.hidden]="layoutState.sidebarCollapsed">Conversaciones</h2>
         
         <button 
           class="close-sidebar apple-button icon-only secondary"
-          (click)="closeSidebar()"
-          [class.hidden]="sidebarCollapsed"
+          (click)="layoutService.setSidebarOpen(false)"
+          [class.hidden]="layoutState.sidebarCollapsed"
           title="Cerrar sidebar">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <line x1="18" y1="6" x2="6" y2="18"/>
@@ -50,12 +47,12 @@ import { ConversationSummary } from '../../models/conversation.model';
         <button 
           class="new-chat-button apple-button primary"
           (click)="startNewChat()"
-          [title]="sidebarCollapsed ? 'Nueva conversación' : ''"
-          [class.icon-only]="sidebarCollapsed">
+          [title]="layoutState.sidebarCollapsed ? 'Nueva conversación' : ''"
+          [class.icon-only]="layoutState.sidebarCollapsed">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M12 5v14M5 12h14"/>
           </svg>
-          <span [class.hidden]="sidebarCollapsed">Nueva conversación</span>
+          <span [class.hidden]="layoutState.sidebarCollapsed">Nueva conversación</span>
         </button>
 
         <!-- Conversations List -->
@@ -66,16 +63,16 @@ import { ConversationSummary } from '../../models/conversation.model';
             [class.active]="isActiveConversation(conversation.id)"
             (click)="loadConversation(conversation.id)">
             
-            <div class="conversation-info" [class.collapsed]="sidebarCollapsed">
+            <div class="conversation-info" [class.collapsed]="layoutState.sidebarCollapsed">
               <!-- En modo colapsado, mostrar solo ícono -->
-              <div class="conversation-icon" *ngIf="sidebarCollapsed">
+              <div class="conversation-icon" *ngIf="layoutState.sidebarCollapsed">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/>
                 </svg>
               </div>
               
               <!-- En modo expandido, mostrar información completa -->
-              <div class="conversation-details" [class.hidden]="sidebarCollapsed">
+              <div class="conversation-details" [class.hidden]="layoutState.sidebarCollapsed">
                 <h4 class="conversation-title">{{ conversation.title }}</h4>
                 <p class="conversation-preview">{{ conversation.lastMessage }}</p>
                 <div class="conversation-meta">
@@ -85,7 +82,7 @@ import { ConversationSummary } from '../../models/conversation.model';
               </div>
             </div>
 
-            <div class="conversation-actions" [class.hidden]="sidebarCollapsed">
+            <div class="conversation-actions" [class.hidden]="layoutState.sidebarCollapsed">
               <button 
                 class="action-button"
                 (click)="deleteConversation($event, conversation.id)"
@@ -117,30 +114,30 @@ import { ConversationSummary } from '../../models/conversation.model';
           <button 
             class="settings-button apple-button secondary"
             (click)="openSettings()"
-            [title]="sidebarCollapsed ? 'Configuración' : ''"
-            [class.icon-only]="sidebarCollapsed">
+            [title]="layoutState.sidebarCollapsed ? 'Configuración' : ''"
+            [class.icon-only]="layoutState.sidebarCollapsed">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <circle cx="12" cy="12" r="3"/>
               <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1 1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
             </svg>
-            <span [class.hidden]="sidebarCollapsed">Configuración</span>
+            <span [class.hidden]="layoutState.sidebarCollapsed">Configuración</span>
           </button>
 
           <button 
             class="export-button apple-button secondary"
             (click)="exportConversations()"
-            [title]="sidebarCollapsed ? 'Exportar' : ''"
-            [class.icon-only]="sidebarCollapsed">
+            [title]="layoutState.sidebarCollapsed ? 'Exportar' : ''"
+            [class.icon-only]="layoutState.sidebarCollapsed">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
               <polyline points="7,10 12,15 17,10"/>
               <line x1="12" y1="15" x2="12" y2="3"/>
             </svg>
-            <span [class.hidden]="sidebarCollapsed">Exportar</span>
+            <span [class.hidden]="layoutState.sidebarCollapsed">Exportar</span>
           </button>
         </div>
 
-        <div class="app-info" [class.collapsed]="sidebarCollapsed">
+        <div class="app-info" [class.collapsed]="layoutState.sidebarCollapsed">
           <div class="app-branding">
             <div class="app-icon">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -149,63 +146,29 @@ import { ConversationSummary } from '../../models/conversation.model';
                 <path d="M12 1v6M12 17v6M4.22 4.22l4.24 4.24M15.54 15.54l4.24 4.24M1 12h6M17 12h6M4.22 19.78l4.24-4.24M15.54 8.46l4.24-4.24"/>
               </svg>
             </div>
-            <span class="app-title" [class.hidden]="sidebarCollapsed">Chatbot v1.0</span>
+            <span class="app-title" [class.hidden]="layoutState.sidebarCollapsed">Chatbot v1.0</span>
           </div>
-          <p class="powered-by" [class.hidden]="sidebarCollapsed">Powered by Gemini AI</p>
+          <p class="powered-by" [class.hidden]="layoutState.sidebarCollapsed">Powered by Gemini AI</p>
         </div>
       </div>
     </aside>
   `,
   styles: [`
-    /* Sidebar Overlay para móvil */
-    .sidebar-overlay {
-      position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background: rgba(0, 0, 0, 0.4);
-      backdrop-filter: blur(10px);
-      -webkit-backdrop-filter: blur(10px);
-      z-index: 150;
-      opacity: 0;
-      pointer-events: none;
-      transition: opacity 0.3s ease;
-      
-      &.visible {
-        opacity: 1;
-        pointer-events: auto;
-      }
-      
-      @media (min-width: 769px) {
-        display: none;
-      }
-    }
-
     /* Sidebar Principal */
     .sidebar {
-      width: 280px;
+      width: var(--sidebar-width-expanded);
       display: flex;
       flex-direction: column;
       background: rgba(242, 242, 247, 0.8);
       backdrop-filter: blur(20px);
       -webkit-backdrop-filter: blur(20px);
       border-right: 0.5px solid rgba(0, 0, 0, 0.1);
-      position: fixed;
-      top: 0;
-      left: 0;
-      height: 100vh;
-      z-index: 200;
-      transform: translateX(-100%);
-      transition: all 0.3s cubic-bezier(0.4, 0.0, 0.2, 1);
-      
-      &.open {
-        transform: translateX(0);
-      }
+      height: 100%;
+      transition: width var(--layout-transition-duration) var(--layout-transition-easing);
       
       /* Estado colapsado - solo en desktop */
       &.collapsed {
-        width: 70px;
+        width: var(--sidebar-width-collapsed);
         
         .sidebar-header {
           justify-content: center;
@@ -221,19 +184,16 @@ import { ConversationSummary } from '../../models/conversation.model';
         }
       }
       
-      @media (min-width: 769px) {
-        position: relative;
-        transform: none;
-        
-        &.open {
-          transform: none;
-        }
-      }
-      
       @media (max-width: 768px) {
         /* En móvil, ignorar el estado collapsed */
         &.collapsed {
-          width: 280px;
+          width: var(--sidebar-width-expanded);
+          
+          .sidebar-header,
+          .sidebar-content,
+          .sidebar-footer {
+            padding: 16px;
+          }
         }
       }
     }
@@ -750,24 +710,31 @@ export class ConversationListComponent implements OnInit, OnDestroy {
     sidebarOpen: false
   };
 
-  sidebarCollapsed: boolean = false;
+  layoutState!: LayoutState;
   private destroy$ = new Subject<void>();
 
-  constructor(private chatStorage: ChatStorageService) { 
-    // Cargar estado colapsado desde localStorage
-    this.sidebarCollapsed = localStorage.getItem('sidebar-collapsed') === 'true';
-  }
+  constructor(
+    private chatStorage: ChatStorageService,
+    public layoutService: LayoutService
+  ) {}
 
   ngOnInit() {
     // Subscribe to chat state changes
     this.chatStorage.chatState$
       .pipe(takeUntil(this.destroy$))
       .subscribe(state => {
+        console.log('[ConversationList] Chat state updated:', state);
+        console.log('[ConversationList] Number of conversations:', state.conversations.length);
         this.chatState = state;
       });
-    
-    // Inicializar ancho de sidebar
-    this.updateSidebarWidth();
+
+    // Subscribe to layout state changes
+    this.layoutService.state$
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(state => {
+        console.log('[ConversationList] Layout state updated:', state);
+        this.layoutState = state;
+      });
   }
 
   ngOnDestroy() {
@@ -775,51 +742,23 @@ export class ConversationListComponent implements OnInit, OnDestroy {
     this.destroy$.complete();
   }
 
-  // LISTENER MEJORADO para cerrar sidebar al hacer clic fuera
-  @HostListener('document:click', ['$event'])
-  onDocumentClick(event: Event) {
-    const target = event.target as HTMLElement;
-    const sidebarElement = document.querySelector('.sidebar');
-    const toggleButton = document.querySelector('.sidebar-toggle');
-
-    // Si el sidebar está abierto y se hace clic fuera
-    if (this.chatState.sidebarOpen &&
-      sidebarElement &&
-      !sidebarElement.contains(target) &&
-      !toggleButton?.contains(target)) {
-      this.closeSidebar();
-    }
-  }
-
-  // Sidebar management
-  closeSidebar() {
-    this.chatStorage.setSidebarOpen(false);
-  }
-
-  toggleSidebarCollapse() {
-    this.sidebarCollapsed = !this.sidebarCollapsed;
-    // Guardar estado en localStorage
-    localStorage.setItem('sidebar-collapsed', this.sidebarCollapsed.toString());
-    // Actualizar variable CSS inmediatamente
-    this.updateSidebarWidth();
-  }
-
-  private updateSidebarWidth() {
-    const width = this.sidebarCollapsed ? '70px' : '280px';
-    document.documentElement.style.setProperty('--sidebar-width', width);
-  }
+  // Sidebar management (now handled by LayoutService)
 
   // Conversation management  
   startNewChat() {
     this.chatStorage.clearCurrentConversation();
-    this.closeSidebar(); // Close sidebar on mobile after action
+    if (this.layoutState.isMobile) {
+      this.layoutService.setSidebarOpen(false);
+    }
   }
 
   loadConversation(conversationId: string) {
     const conversation = this.chatStorage.loadConversation(conversationId);
     if (conversation) {
       this.chatStorage.setCurrentConversation(conversation);
-      this.closeSidebar(); // Close sidebar on mobile after loading conversation
+      if (this.layoutState.isMobile) {
+        this.layoutService.setSidebarOpen(false);
+      }
     }
   }
 

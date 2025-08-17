@@ -1,8 +1,30 @@
-// src/styles.scss - ACTUALIZADO CON NUEVA SINTAXIS
+// src/styles.scss - ACTUALIZADO CON NUEVO SISTEMA DE LAYOUT
 @use 'styles/variables' as *;
 @use 'styles/mixins' as *;
 @use 'styles/apple-design';
 @use 'styles/animations';
+
+/* CSS Variables for new layout system - con valores fallback URGENTES */
+:root {
+  /* Layout variables - initialized by LayoutService */
+  --sidebar-width: 280px !important; /* fallback crítico */
+  --sidebar-width-expanded: 280px !important;
+  --sidebar-width-collapsed: 70px !important;
+  --nav-height: 60px !important;
+  --main-content-margin: 0px !important; /* fallback crítico para el chat */
+  
+  /* Breakpoints */
+  --mobile-breakpoint: 768px;
+  
+  /* Transitions - con fallbacks */
+  --layout-transition-duration: 300ms;
+  --layout-transition-easing: cubic-bezier(0.4, 0, 0.2, 1);
+  
+  /* Z-indexes */
+  --z-sidebar: 200;
+  --z-overlay: 150;
+  --z-navigation: 100;
+}
 
 * {
     box-sizing: border-box;
@@ -23,6 +45,48 @@ body {
     line-height: 1.5;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    overflow: hidden; /* Evita scroll global */
+}
+
+/* Layout state classes - MARGEN DINÁMICO CORRECTO */
+body.mobile {
+  --main-content-margin: 0px !important;
+}
+
+/* Desktop: Solo margen cuando sidebar está visible Y expandida */
+body.desktop.chat-view.sidebar-open:not(.sidebar-collapsed) {
+  --main-content-margin: var(--sidebar-width-expanded, 280px) !important;
+}
+
+/* Desktop: Margen pequeño cuando sidebar está visible pero colapsada */
+body.desktop.chat-view.sidebar-open.sidebar-collapsed {
+  --main-content-margin: var(--sidebar-width-collapsed, 70px) !important;
+}
+
+/* Desktop: SIN MARGEN cuando sidebar está oculta O no es vista chat */
+body.desktop.chat-view:not(.sidebar-open),
+body.desktop.search-view,
+body.desktop.admin-view {
+  --main-content-margin: 0px !important;
+}
+
+/* Estado sidebar abierto en móvil */
+body.mobile.sidebar-open {
+  overflow: hidden; /* Prevenir scroll cuando sidebar está abierto */
+}
+
+/* URGENTE: Debug fallback styles */
+.debug-fallback {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(255, 0, 0, 0.8);
+  color: white;
+  padding: 20px;
+  border-radius: 8px;
+  z-index: 9999;
+  text-align: center;
 }
 
 /* Estilos del branding de la app */
