@@ -11,14 +11,12 @@ import { LayoutService } from '../../services/layout.service';
 import { BackendChatResponse, CarreraOption } from '../../models/backend-response.model';
 import { Message } from '../../models/message.model';
 import { ChatState } from '../../models/chat-state.model';
-import { FileAttachment } from '../../models/file-upload.model';
+// FileAttachment eliminado - solo texto
 
 // Components
 import { MessageComponent } from '../message/message.component';
 import { TypingIndicatorComponent } from '../typing-indicator/typing-indicator.component';
-import { FileUploadComponent } from '../file-upload/file-upload.component';
 import { SystemInfoComponent } from '../system-info/system-info.component';
-import { CareerSelectorComponent } from '../career-selector/career-selector.component';
 
 // Directives
 import { AutoResizeDirective } from '../../directives/auto-resize.directive';
@@ -32,9 +30,7 @@ import { ClickOutsideDirective } from '../../directives/click-outside.directive'
     FormsModule,
     MessageComponent,
     TypingIndicatorComponent,
-    FileUploadComponent,
     SystemInfoComponent,
-    CareerSelectorComponent,
     AutoResizeDirective,
     ClickOutsideDirective
   ],
@@ -58,26 +54,20 @@ import { ClickOutsideDirective } from '../../directives/click-outside.directive'
             <h1 class="text-title-3">{{ getConversationTitle() }}</h1>
             <p class="text-caption-1" *ngIf="chatState.isTyping">AI está escribiendo...</p>
             
-            <div class="current-model-indicator" (click)="toggleCareerSelector()">
+            <!-- MOSTRAR CARRERA DETECTADA (solo lectura) -->
+            <div class="detected-career-info" *ngIf="detectedCareer">
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M22 10v6M2 10l10-5 10 5-10 5z"/>
-                <path d="M6 12v5c3 3 9 3 12 0v-5"/>
               </svg>
-              <span>{{ getCurrentCareerName() }}</span>
-              <span class="model-params">{{ getCurrentCareerCode() }}</span>
+              <span>Carrera detectada: {{ detectedCareer.name }}</span>
+              <span class="confidence-badge" [class.high]="detectedCareer.confidence > 0.8">
+                {{ (detectedCareer.confidence * 100) | number:'1.0-0' }}%
+              </span>
             </div>
           </div>
 
           <div class="header-actions">
-            <button 
-              class="apple-button icon-only secondary career-selector-btn"
-              (click)="toggleCareerSelector()"
-              title="Cambiar carrera">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M22 10v6M2 10l10-5 10 5-10 5z"/>
-                <path d="M6 12v5c3 3 9 3 12 0v-5"/>
-              </svg>
-            </button>
+<!-- Botón de carrera eliminado - detección automática -->
 
             <button 
               class="apple-button icon-only secondary"
@@ -131,28 +121,38 @@ import { ClickOutsideDirective } from '../../directives/click-outside.directive'
                 ¿En qué puedo ayudarte hoy?
               </p>
               
-              <div class="current-model-info">
-                <div class="model-badge">
+              <div class="detection-info" *ngIf="!detectedCareer">
+                <div class="info-badge">
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M12 2L13.09 8.26L22 9L13.09 9.74L12 16L10.91 9.74L2 9L10.91 8.26L12 2Z"/>
+                    <circle cx="12" cy="12" r="10"/>
+                    <line x1="12" y1="16" x2="12" y2="12"/>
+                    <line x1="12" y1="8" x2="12.01" y2="8"/>
                   </svg>
-                  Carrera actual: {{ getCurrentCareerName() }} ({{ getCurrentCareerCode() }})
+                  Ingresa tu cédula o menciona tu carrera para recibir recomendaciones personalizadas
                 </div>
-                <button class="change-model-btn apple-button primary small" (click)="toggleCareerSelector()">
-                  Cambiar carrera
-                </button>
+              </div>
+              
+              <div class="detection-info" *ngIf="detectedCareer">
+                <div class="info-badge detected">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                    <polyline points="22,4 12,14.01 9,11.01"/>
+                  </svg>
+                  Carrera detectada: {{ detectedCareer.name }} 
+                  <span class="detection-method">({{ getDetectionMethodText() }})</span>
+                </div>
               </div>
               
               <div class="quick-actions">
                 <button 
                   class="quick-action apple-button secondary"
-                  (click)="sendQuickMessage('Necesito libros sobre programación')">
-                  Libros de programación
+                  (click)="sendQuickMessage('Mi cédula es 1234567890, necesito libros para mi carrera')">
+                  Ejemplo con cédula
                 </button>
                 <button 
                   class="quick-action apple-button secondary"
-                  (click)="sendQuickMessage('¿Qué libros recomiendan para Marketing Digital?')">
-                  Marketing Digital
+                  (click)="sendQuickMessage('Estudio programación, qué libros me recomiendas')">
+                  Mencionar carrera
                 </button>
                 <button 
                   class="quick-action apple-button secondary"
@@ -185,48 +185,10 @@ import { ClickOutsideDirective } from '../../directives/click-outside.directive'
 
       <!-- Input Area -->
       <footer class="chat-input-area glass-effect">
-        <div class="file-upload-section" *ngIf="showFileUpload" 
-             appClickOutside (clickOutside)="hideFileUpload()">
-          <app-file-upload 
-            [disabled]="chatState.isLoading"
-            (filesSelected)="onFilesSelected($event)">
-          </app-file-upload>
-        </div>
-
-        <div class="selected-files" *ngIf="selectedFiles.length > 0">
-          <div class="selected-file" *ngFor="let file of selectedFiles; let i = index">
-            <div class="file-preview" *ngIf="isImage(file.type)">
-              <img [src]="file.url || file.base64" [alt]="file.name">
-            </div>
-            <div class="file-info" *ngIf="!isImage(file.type)">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-                <polyline points="14,2 14,8 20,8"/>
-              </svg>
-              <span>{{ file.name }}</span>
-            </div>
-            <button 
-              class="remove-file"
-              (click)="removeSelectedFile(i)"
-              title="Remover archivo">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <line x1="18" y1="6" x2="6" y2="18"/>
-                <line x1="6" y1="6" x2="18" y2="18"/>
-              </svg>
-            </button>
-          </div>
-        </div>
+<!-- File upload eliminado - solo texto -->
 
         <div class="input-controls">
-          <button 
-            class="attach-button apple-button icon-only secondary"
-            (click)="toggleFileUpload()"
-            [class.active]="showFileUpload"
-            title="Adjuntar archivo">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66L9.64 16.2a2 2 0 0 1-2.83-2.83l8.49-8.49"/>
-            </svg>
-          </button>
+          <!-- Botón de adjuntar eliminado -->
 
           <div class="input-wrapper">
             <textarea
@@ -236,7 +198,7 @@ import { ClickOutsideDirective } from '../../directives/click-outside.directive'
               [minHeight]="44"
               [maxHeight]="120"
               class="message-input apple-input"
-              placeholder="Escribe tu mensaje..."
+              placeholder="Escribe tu pregunta sobre libros o ingresa tu cédula para préstamos..."
               (keydown)="onKeyDown($event)"
               [disabled]="chatState.isLoading"
               rows="1">
@@ -284,7 +246,7 @@ import { ClickOutsideDirective } from '../../directives/click-outside.directive'
       </div>
 
       <app-system-info *ngIf="showSystemInfo"></app-system-info>
-      <app-career-selector *ngIf="showCareerSelector"></app-career-selector>
+      <!-- Career selector eliminado - detección automática -->
     </div>
   `,
   styles: [`
@@ -324,27 +286,31 @@ import { ClickOutsideDirective } from '../../directives/click-outside.directive'
       text-align: center;
     }
 
-    .current-model-indicator {
+    .detected-career-info {
       display: flex;
       align-items: center;
       gap: 6px;
-      background: rgba(0, 122, 255, 0.1);
-      color: #007aff;
+      background: rgba(52, 199, 89, 0.1);
+      color: #34c759;
       padding: 4px 8px;
       border-radius: 12px;
       font-size: 11px;
       font-weight: 600;
-      cursor: pointer;
-      transition: all 0.2s ease;
       margin-top: 4px;
+      border: 1px solid rgba(52, 199, 89, 0.2);
     }
 
-    .model-params {
-      background: rgba(0, 122, 255, 0.2);
+    .confidence-badge {
+      background: rgba(52, 199, 89, 0.2);
       padding: 2px 6px;
       border-radius: 8px;
       font-size: 9px;
       font-weight: 700;
+    }
+
+    .confidence-badge.high {
+      background: rgba(52, 199, 89, 0.3);
+      color: #248a3d;
     }
 
     .header-actions {
@@ -354,10 +320,7 @@ import { ClickOutsideDirective } from '../../directives/click-outside.directive'
       gap: 8px;
     }
 
-    .career-selector-btn {
-      background: linear-gradient(135deg, #007AFF, #5856D6) !important;
-      color: white !important;
-    }
+    /* Career selector eliminado */
 
     .chat-messages {
       flex: 1;
@@ -412,23 +375,39 @@ import { ClickOutsideDirective } from '../../directives/click-outside.directive'
       filter: drop-shadow(0 4px 12px rgba(0, 122, 255, 0.3));
     }
 
-    .current-model-info {
-      background: rgba(0, 122, 255, 0.05);
-      border: 1px solid rgba(0, 122, 255, 0.1);
+    .detection-info {
+      background: rgba(142, 142, 147, 0.05);
+      border: 1px solid rgba(142, 142, 147, 0.1);
       border-radius: 12px;
       padding: 16px;
       margin: 24px 0;
     }
 
-    .model-badge {
+    .detection-info.detected {
+      background: rgba(52, 199, 89, 0.05);
+      border: 1px solid rgba(52, 199, 89, 0.1);
+    }
+
+    .info-badge {
       display: flex;
       align-items: center;
       justify-content: center;
       gap: 8px;
-      color: #007aff;
+      color: #8e8e93;
       font-size: 14px;
       font-weight: 600;
-      margin-bottom: 12px;
+      text-align: center;
+      line-height: 1.4;
+    }
+
+    .info-badge.detected {
+      color: #34c759;
+    }
+
+    .detection-method {
+      color: #8e8e93;
+      font-size: 12px;
+      font-weight: 400;
     }
 
     .quick-actions {
@@ -452,60 +431,7 @@ import { ClickOutsideDirective } from '../../directives/click-outside.directive'
       margin-left: var(--main-content-margin, 280px); /* RESPETAR SIDEBAR */
     }
 
-    .file-upload-section {
-      margin-bottom: 12px;
-      background: #ffffff;
-      border-radius: 12px;
-      padding: 16px;
-      border: 0.5px solid rgba(0, 0, 0, 0.1);
-    }
-
-    .selected-files {
-      display: flex;
-      gap: 8px;
-      margin-bottom: 12px;
-      flex-wrap: wrap;
-    }
-
-    .selected-file {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      background: #ffffff;
-      border-radius: 8px;
-      padding: 8px 12px;
-      border: 0.5px solid rgba(0, 0, 0, 0.1);
-    }
-
-    .file-preview img {
-      width: 24px;
-      height: 24px;
-      border-radius: 4px;
-      object-fit: cover;
-    }
-
-    .file-info {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      font-size: 13px;
-      color: #6e6e73;
-    }
-
-    .remove-file {
-      background: none;
-      border: none;
-      color: #8e8e93;
-      cursor: pointer;
-      padding: 2px;
-      border-radius: 50%;
-      transition: all 0.2s ease;
-    }
-
-    .remove-file:hover {
-      background: #ff3b30;
-      color: white;
-    }
+    /* Estilos de archivos eliminados - solo texto */
 
     .input-controls {
       display: flex;
@@ -652,10 +578,7 @@ import { ClickOutsideDirective } from '../../directives/click-outside.directive'
         border-top-color: rgba(255, 255, 255, 0.1);
       }
       
-      .file-upload-section, .selected-file {
-        background: #2c2c2e;
-        border-color: rgba(255, 255, 255, 0.1);
-      }
+      /* File upload eliminado en dark mode */
     }
 
     /* Responsive optimizado */
@@ -694,10 +617,9 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
   @ViewChild('messageInput') messageInput!: ElementRef;
 
   currentMessage = '';
-  selectedFiles: FileAttachment[] = [];
-  showFileUpload = false;
   showSystemInfo = false;
-  showCareerSelector = false;
+  detectedCareer: any = null;
+  studentInfo: any = null;
   useTypewriter = false;
   isGenerating = false;
 
@@ -707,7 +629,9 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
     isLoading: false,
     isTyping: false,
     error: null,
-    sidebarOpen: false
+    sidebarOpen: false,
+    detectedCareer: null,
+    studentInfo: null
   };
 
   showNotificationMessage = false;
@@ -719,7 +643,6 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
   constructor(
     private backendChatService: BackendChatService,
     private chatStorage: ChatStorageService,
-    private fileService: FileService,
     private layoutService: LayoutService
   ) {
     // Conectar el BackendChatService al ChatStorageService para generación de títulos
@@ -748,9 +671,7 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
       this.showSystemInfo = false;
     });
 
-    document.body.addEventListener('closeCareerSelector', () => {
-      this.showCareerSelector = false;
-    });
+    // Career selector eliminado
   }
 
   ngAfterViewChecked() {
@@ -771,27 +692,19 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
     this.layoutService.toggleSidebar();
   }
 
-  toggleCareerSelector() {
-    this.showCareerSelector = !this.showCareerSelector;
+  // toggleCareerSelector eliminado - detección automática
+
+  getDetectionMethodText(): string {
+    if (!this.detectedCareer) return '';
+    switch (this.detectedCareer.detection_method) {
+      case 'cedula': return 'por cédula';
+      case 'context': return 'por contexto';
+      case 'manual': return 'manual';
+      default: return 'automática';
+    }
   }
 
-  getCurrentCareerName(): string {
-    const carreraMap: { [key: string]: string } = {
-      'ADMINISTRACION': 'Administración de Empresas',
-      'MARKETING': 'Marketing',
-      'NEGOCIOS_INTERNACIONALES': 'Negocios Internacionales',
-      'SISTEMAS': 'Ingeniería en Tecnologías de la Información y Comunicación',
-      'PSICOLOGIA': 'Psicología',
-      'ARQUITECTURA': 'Arquitectura',
-      'DERECHO': 'Derecho'
-    };
-    const carrera = this.backendChatService.getCurrentCarrera();
-    return carreraMap[carrera] || carrera;
-  }
-
-  getCurrentCareerCode(): string {
-    return this.backendChatService.getCurrentCarrera();
-  }
+  // getCurrentCareerCode eliminado - detección automática
 
   // MÉTODO PARA DETENER GENERACIÓN
   stopGeneration() {
@@ -804,15 +717,11 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
     if (!this.canSendMessage()) return;
 
     const messageContent = this.currentMessage.trim();
-    const attachments = [...this.selectedFiles];
-
     this.currentMessage = '';
-    this.selectedFiles = [];
 
     const userMessage = this.chatStorage.addMessage({
       content: messageContent,
-      isUser: true,
-      attachments: attachments.length > 0 ? attachments : undefined
+      isUser: true
     });
 
     this.clearError();
@@ -820,20 +729,26 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
     try {
       this.chatStorage.setTyping(true);
 
-      // For now, we'll ignore image attachments and focus on text
-      // TODO: Implement image handling with backend
-      if (attachments.length > 0 && attachments.some(file => this.isImage(file.type))) {
-        this.showError('El procesamiento de imágenes estará disponible próximamente a través del backend.');
-        this.chatStorage.setTyping(false);
-        return;
-      }
-
-      // Use standard chat (RAG service not available - missing chromadb dependency)
+      // Usar nuevo servicio con detección automática
       const backendResponse = await this.backendChatService.sendMessage(messageContent, true).toPromise();
       
       console.log('Backend response received:', backendResponse);
       
       if (backendResponse && backendResponse.success) {
+        // Actualizar carrera detectada si está disponible
+        if (backendResponse.detected_career) {
+          this.detectedCareer = backendResponse.detected_career;
+          this.chatState.detectedCareer = backendResponse.detected_career;
+          console.log('Carrera detectada:', this.detectedCareer);
+        }
+        
+        // Actualizar información del estudiante si está disponible
+        if (backendResponse.student_info) {
+          this.studentInfo = backendResponse.student_info;
+          this.chatState.studentInfo = backendResponse.student_info;
+          console.log('Estudiante identificado:', this.studentInfo);
+        }
+        
         console.log('Adding message to chat:', backendResponse.message);
         this.chatStorage.addMessage({
           content: backendResponse.message,
@@ -882,47 +797,10 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
     this.chatStorage.setCurrentConversation(conversation);
 
     this.currentMessage = userMessage.content;
-    if (userMessage.attachments) {
-      this.selectedFiles = [...userMessage.attachments];
-    }
     this.sendMessage();
   }
 
-  onFilesSelected(files: FileAttachment[]) {
-    this.selectedFiles.push(...files);
-    this.hideFileUpload();
-  }
-
-  removeSelectedFile(index: number) {
-    this.selectedFiles.splice(index, 1);
-  }
-
-  toggleFileUpload() {
-    this.showFileUpload = !this.showFileUpload;
-  }
-
-  hideFileUpload() {
-    this.showFileUpload = false;
-  }
-
-  isImage(mimeType: string): boolean {
-    return mimeType.startsWith('image/');
-  }
-
-  private createFileFromAttachment(attachment: FileAttachment): File {
-    const base64Data = attachment.base64 || attachment.url || '';
-    const byteCharacters = atob(base64Data.split(',')[1]);
-    const byteNumbers = new Array(byteCharacters.length);
-
-    for (let i = 0; i < byteCharacters.length; i++) {
-      byteNumbers[i] = byteCharacters.charCodeAt(i);
-    }
-
-    const byteArray = new Uint8Array(byteNumbers);
-    const blob = new Blob([byteArray], { type: attachment.type });
-
-    return new File([blob], attachment.name, { type: attachment.type });
-  }
+  // Métodos de archivos eliminados - solo texto
 
   startNewConversation() {
     this.chatStorage.clearCurrentConversation();
@@ -953,7 +831,7 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
   }
 
   canSendMessage(): boolean {
-    return (this.currentMessage.trim().length > 0 || this.selectedFiles.length > 0)
+    return this.currentMessage.trim().length > 0
       && !this.chatState.isLoading
       && !this.chatState.isTyping
       && !this.isGenerating;
@@ -961,8 +839,6 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
 
   clearInput() {
     this.currentMessage = '';
-    this.selectedFiles = [];
-    this.hideFileUpload();
   }
 
   hasMessages(): boolean {

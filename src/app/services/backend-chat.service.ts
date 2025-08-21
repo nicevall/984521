@@ -14,16 +14,40 @@ export interface ChatRequest {
   context?: any;
 }
 
+// Nueva interfaz para carrera detectada
+export interface DetectedCareer {
+  code: string;
+  name: string;
+  confidence: number; // 0-1
+  detection_method: 'cedula' | 'context' | 'manual';
+  matched_keywords?: string[];
+}
+
+// Nueva interfaz para información del estudiante
+export interface StudentInfo {
+  cedula: string;
+  nombre: string;
+  carrera: string;
+  email?: string;
+  telefono?: string;
+  semestre?: number;
+}
+
 export interface ChatResponse {
   message: string;
   session_id: string;
   session_token: string;
   books_found: any[];
   suggestions: string[];
+  // NUEVOS CAMPOS PARA DETECCIÓN AUTOMÁTICA
+  detected_career?: DetectedCareer;
+  student_info?: StudentInfo;
   metadata: {
     carrera: string;
     total_messages: number;
     books_found_count: number;
+    career_detection_active?: boolean;
+    detection_confidence?: number;
     rag_sources_count?: number;
     confidence?: number;
     context_used?: boolean;
@@ -113,7 +137,7 @@ export class BackendChatService {
     return this.sendChatMessage(message, includeBooks, true);
   }
 
-  // Método privado para enviar mensajes
+  // Método privado para enviar mensajes con detección automática
   private sendChatMessage(message: string, includeBooks: boolean, useRAG: boolean): Observable<ChatResponse> {
     // Cancelar request anterior si existe
     if (this.currentRequestController) {
@@ -125,13 +149,17 @@ export class BackendChatService {
     
     this.isGenerating$.next(true);
 
+    // NUEVA LÓGICA: No enviar carrera fija - dejar que el backend detecte automáticamente
     const request: ChatRequest = {
       message,
       session_id: this.currentSessionId || undefined,
-      carrera: this.currentCarrera,
+      // carrera: NO ENVIAR - detección automática
       include_books: includeBooks,
       search_limit: 5,
-      context: {}
+      context: {
+        automatic_detection: true, // Indicar que queremos detección automática
+        timestamp: new Date().toISOString()
+      }
     };
 
     const endpoint = useRAG ? '/api/v1/chat/message/rag' : '/api/v1/chat/message';
@@ -150,6 +178,24 @@ export class BackendChatService {
             this.currentSessionId = response.session_id;
             this.currentSessionToken = response.session_token;
             this.saveSessionToStorage();
+          }
+          
+          // NUEVA FUNCIONALIDAD: Manejar carrera detectada automáticamente
+          if (response.detected_career) {
+            console.log('Carrera detectada automáticamente:', response.detected_career);
+            // Actualizar carrera actual si se detectó una nueva
+            if (response.detected_career.code !== this.currentCarrera) {
+              this.currentCarrera = response.detected_career.code;
+              this.saveSessionToStorage();
+              console.log(`Carrera actualizada automáticamente a: ${response.detected_career.name}`);
+            }
+          }
+          
+          // Manejar información del estudiante detectada
+          if (response.student_info) {
+            console.log('Estudiante identificado:', response.student_info);
+            // Guardar información del estudiante en localStorage
+            localStorage.setItem('detected_student_info', JSON.stringify(response.student_info));
           }
           
           this.isGenerating$.next(false);
@@ -254,6 +300,50 @@ export class BackendChatService {
 
     return this.http.post(`${this.API_BASE_URL}/api/v1/generate-title`, requestBody, this.httpOptions)
       .pipe(catchError(this.handleError));
+  }
+
+  // NUEVOS MÉTODOS PARA DETECCIÓN AUTOMÁTICA
+  
+  // Obtener información del estudiante detectado
+  getDetectedStudentInfo(): StudentInfo | null {
+    try {
+      const stored = localStorage.getItem('detected_student_info');
+      return stored ? JSON.parse(stored) : null;
+    } catch {
+      return null;
+    }
+  }
+  
+  // Limpiar información del estudiante detectado
+  clearDetectedStudentInfo(): void {
+    localStorage.removeItem('detected_student_info');
+  }
+  
+  // Verificar si hay información de estudiante detectada
+  hasDetectedStudentInfo(): boolean {
+    return this.getDetectedStudentInfo() !== null;
+  }
+  
+  // Obtener texto de método de detección en español
+  getDetectionMethodText(method: string): string {
+    switch (method) {
+      case 'cedula': return 'por cédula';
+      case 'context': return 'por contexto';
+      case 'manual': return 'manual';
+      default: return 'automática';
+    }
+  }
+  
+  // Crear mensaje de ayuda para detección automática
+  getDetectionHelpMessage(): string {
+    return `💡 **Detección Automática Activa**
+    
+Para recibir recomendaciones personalizadas:
+• Menciona tu cédula: "Mi cédula es 1234567890"
+• Indica tu carrera: "Estudio sistemas" o "Soy de marketing"
+• Pregunta directamente: "Necesito libros para mi carrera"
+
+El sistema detectará automáticamente tu perfil y te dará recomendaciones específicas.`;
   }
 
   // Manejar errores HTTP
